@@ -171,9 +171,13 @@ int main(int argc, char* argv[]) {
                 write(socketf,bufor,strlen(bufor));
                 i=0;
             }
+        } else {
+           bufor[0]=COMMAND; bufor[1]=NOP; bufor[2]=0;
+           write(socketf,bufor,strlen(bufor));
+           i=0;
         }
 
-        //fprintf(stderr,"%d ",i);
+        fprintf(stderr,"%d ",i);
     }
     printf("\n you hit %c. \n",c);
     nonblock(2);

@@ -49,10 +49,18 @@ int main() {
 	char key = 0;
 	while(key!='q' && key!='Q') {
 		if(key=='\n' || key=='\r') {key=(char)getchar(); continue;}
-		printf("Console: Q-Quit, C-connected clients, \n");
+		printf("Console: Q-Quit, C-connected clients, P# - position of player\n");
 		key = (char)getchar();
 		if(key=='C' || key=='c')
 			printf("Clients: %d\n",clients);
+		if(key=='P' || key=='p') {
+			key = (char)getchar();
+			int p = key-'0';
+			if(playerPtrs[p]==0)
+				printf("No player in this slot.\n");
+			else
+				printf("Player #%d %s [%d,%d]\n",p,playerPtrs[p]->name,playerPtrs[p]->x,playerPtrs[p]->y);
+		}
 	}
 	
 	CancelThread(&watchdog);

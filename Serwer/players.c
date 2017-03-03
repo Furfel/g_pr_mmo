@@ -81,7 +81,6 @@ void* PlayerThreadFunction(void* arg) {
 			UpdatePlayer(player,0);
 			usleep(1000*25);
 		} else {
-			printf("(%s) Read something...\n",player->name);
 			this->last_active = time(NULL);
 			UpdatePlayer(player,buffer);
 			usleep(1000*20);
