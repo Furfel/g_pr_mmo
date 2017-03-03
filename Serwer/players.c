@@ -57,6 +57,8 @@ void* UpdatePlayersThreadFunction(void* arg) {
 
 void StartPlayerThread(Thread* thread, int socket) {
 	//Player* player = CreatePlayer(thread);
+	char b;
+	thread->attachment = &b;
 	#ifdef _DEBUG_
 		printf("Creating player and passing free thread and socket.\n");
 	#endif

@@ -20,12 +20,17 @@ void nltozero(char* src, size_t size) {
     }
 }
 
-int main() {
-    printf("Polacz z serwerem: ");
-    char adres[24];
-    bzero(adres,24);
-    fgets(adres,23,stdin);
-    nltozero(adres,23);
+int main(int argc, char* argv[]) {
+    char* adres;
+    if(argc > 1) {
+        adres = argv[1];
+    } else {
+        printf("Polacz z serwerem: ");
+        adres = malloc(24);
+        bzero(adres,24);
+        fgets(adres,23,stdin);
+        nltozero(adres,23);
+    }
     
     int socketf;
     socketf = socket(AF_INET,SOCK_STREAM,0); //IPv4, TCP

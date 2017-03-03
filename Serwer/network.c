@@ -36,10 +36,10 @@ void* ListenerFunction(void* arg) {
 		} else {
 			char* address = inet_ntoa(client_addr.sin_addr);
 			printf("Successfully accepted connection from [%s]\n",address);
-			Thread* free = 0;
-			for(int i=0;i<size && free == 0;i++)
-				if(threads[i].attachment == 0) free = &threads[i];
-			if(free == 0) { //Znaczy ze nie ma miejsca xd
+			Thread* freet = 0;
+			for(int i=0;i<size && freet == 0;i++)
+				if(threads[i].attachment == 0) freet = &threads[i];
+			if(freet == 0) { //Znaczy ze nie ma miejsca xd
 				#ifdef _DEBUG_
 					printf("No more room for player!\n");
 				#endif
@@ -49,7 +49,8 @@ void* ListenerFunction(void* arg) {
 				#ifdef _DEBUG_
 					printf("Welcoming player and passing to new thread.\n");
 				#endif
-				write(newsocket,WELCOME_MESSAGE,WELCOME_MESSAGE_LENGTH); //Witamy na serwerze, jest miesjce!	
+				write(newsocket,WELCOME_MESSAGE,WELCOME_MESSAGE_LENGTH); //Witamy na serwerze, jest miesjce!
+				StartPlayerThread(freet,newsocket);
 			}
 			
 		}
