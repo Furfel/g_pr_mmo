@@ -26,8 +26,25 @@ Player* CreatePlayer(Thread* attachThread, int index) {
 	return newPlayer;
 }
 
-void UpdatePlayer(Player* player){
-	
+void UpdatePlayer(Player* player, char* commands){
+	if(commands!=0) {
+		if(commands[0]==0x11) {
+			if(commands[1]==0x2) { //Tylko ustawianie imienia
+				#ifdef _DEBUG_
+					printf("Changing name to: %s\n",commands+2);
+				#endif
+				SetPlayerName(player,commands+2);
+			} else if(commands[1]==0x3) {
+				switch(commands[2]) {
+					case 'w': --player->y; break;
+					case 's': ++player->y; break;
+					case 'a': --player->x; break;
+					case 'd': ++player->x; break;
+				}
+			}
+		}
+		commands[0]=0x0;
+	}
 }
 
 void DestroyPlayer(Player* player) {
@@ -60,8 +77,15 @@ void* PlayerThreadFunction(void* arg) {
 	while(this->alive == THREAD_ALIVE) {
 		r = read(socketf,buffer,1023);
 		if(r < 0) printf("(%s) Error reading from socket.\n",player->name);
-		else if(r==0) {usleep(1000*25);}
-		else {printf("(%s) Read something...\n",player->name);this->last_active = time(NULL);}
+		else if(r==0) {
+			UpdatePlayer(player,0);
+			usleep(1000*25);
+		} else {
+			printf("(%s) Read something...\n",player->name);
+			this->last_active = time(NULL);
+			UpdatePlayer(player,buffer);
+			usleep(1000*20);
+		}
 	}
 	#ifdef _DEBUG_
 		printf("(%s) Closing socket\n",player->name);
