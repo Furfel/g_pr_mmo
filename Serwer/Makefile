@@ -21,7 +21,7 @@ utils.o : utils.c utils.h
 players.o : players.c utils.h players.h
 	gcc $(CFLAGS) -c players.c
 	
-network.o : network.c network.h
+network.o : network.c network.h players.h
 	gcc $(CFLAGS) -c network.c
 	
 watchdog.o : watchdog.c watchdog.h utils.h

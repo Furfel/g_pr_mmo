@@ -54,3 +54,10 @@ void* UpdatePlayersThreadFunction(void* arg) {
 	free(this);
 	pthread_exit(NULL);
 }
+
+void StartPlayerThread(Thread* thread, int socket) {
+	//Player* player = CreatePlayer(thread);
+	#ifdef _DEBUG_
+		printf("Creating player and passing free thread and socket.\n");
+	#endif
+}

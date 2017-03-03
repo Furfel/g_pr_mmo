@@ -32,5 +32,6 @@ void SetPlayerName(Player* player, char* name);
 Player* CreatePlayer(Thread* attachThread);
 void DestroyPlayer(Player* player);
 void StartUpdatePlayersThread(Thread* thread);
+void StartPlayerThread(Thread* thread, int socket);
 
 #endif
