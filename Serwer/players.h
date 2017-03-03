@@ -19,7 +19,10 @@ typedef struct {
 	Thread* playerThread;
 	int x;
 	int y;
+	int index;
 } Player;
+
+Player* playerPtrs[MAX_THREADS];
 
 typedef struct {
 	Player* players;
@@ -28,10 +31,14 @@ typedef struct {
 	Thread* self;
 } UpdatePlayersThreadArgument;
 
-void SetPlayerName(Player* player, char* name);
-Player* CreatePlayer(Thread* attachThread);
+typedef struct {
+	Player* player;
+	int socket;
+	int index;
+} PlayerThreadAttachment;
+
 void DestroyPlayer(Player* player);
-void StartUpdatePlayersThread(Thread* thread);
-void StartPlayerThread(Thread* thread, int socket);
+void StartPlayerThread(Thread* thread, int index, int socket);
+void InitPlayerPtrArray(Player** playerptrs, size_t size);
 
 #endif

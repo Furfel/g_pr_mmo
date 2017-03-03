@@ -3,7 +3,8 @@
 
 #define THREAD_ALIVE 1
 #define THREAD_DEAD 0
-#define THREAD_MAX_IDLE 2500;
+#define THREAD_MAX_IDLE 3;
+#define MAX_THREADS 5 //Maksymalna ilosc podlaczonych graczy
 
 #define WELCOME_BYTE 0x7
 #define WELCOME_NOSPACE 0x15
@@ -18,6 +19,7 @@
 
 typedef struct {
 	pthread_t* self;
+	pthread_mutex_t* safety_mutex;
 	unsigned long last_active;
 	char alive;
 	void* attachment;

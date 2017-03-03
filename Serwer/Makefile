@@ -8,11 +8,11 @@ debug : gameserver
 
 release : gameserver
 
-gameserver : main.o utils.o players.o network.o watchdog.o
+gameserver : players.o main.o utils.o network.o watchdog.o
 	gcc -o build/gameserver$(BIN_SUFFIX) main.o utils.o players.o network.o watchdog.o $(LIB)
 	make clean
 	
-main.o : main.c utils.h network.h
+main.o : main.c utils.h network.h players.h
 	gcc $(CFLAGS) -c main.c
 
 utils.o : utils.c utils.h

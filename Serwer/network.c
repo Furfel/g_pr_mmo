@@ -37,7 +37,8 @@ void* ListenerFunction(void* arg) {
 			char* address = inet_ntoa(client_addr.sin_addr);
 			printf("Successfully accepted connection from [%s]\n",address);
 			Thread* freet = 0;
-			for(int i=0;i<size && freet == 0;i++)
+			int i;
+			for(i=0;i<size && freet == 0;i++)
 				if(threads[i].attachment == 0) freet = &threads[i];
 			if(freet == 0) { //Znaczy ze nie ma miejsca xd
 				#ifdef _DEBUG_
@@ -50,7 +51,7 @@ void* ListenerFunction(void* arg) {
 					printf("Welcoming player and passing to new thread.\n");
 				#endif
 				write(newsocket,WELCOME_MESSAGE,WELCOME_MESSAGE_LENGTH); //Witamy na serwerze, jest miesjce!
-				StartPlayerThread(freet,newsocket);
+				StartPlayerThread(freet,i,newsocket);
 			}
 			
 		}
@@ -72,6 +73,7 @@ void StartListening(Thread* thread, Thread* threads, size_t size, int socket) {
 	
 	thread->attachment = attachment;
 	thread->alive = THREAD_ALIVE;
+	thread->safety_mutex = 0;
 	pthread_t* tmp = (pthread_t*)malloc(sizeof(pthread_t));
 	pthread_create(tmp, NULL, ListenerFunction, thread);
 	thread->self = tmp;

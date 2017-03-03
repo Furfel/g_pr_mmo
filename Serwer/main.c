@@ -5,8 +5,8 @@
 #include "network.h"
 #include "utils.h"
 #include "watchdog.h"
+#include "players.h"
 
-#define MAX_THREADS 5 //Maksymalna ilosc podlaczonych graczy
 #define WATCHDOG_SLEEP 1000*1000 //Ile ma spac watchdog
 #define PORT 9528
 
@@ -33,6 +33,7 @@ int main() {
 	Thread listenThread;
 	
 	InitThreadArray(gracze,MAX_THREADS);
+	InitPlayerPtrArray(playerPtrs,MAX_THREADS);
 	
 	#ifdef _DEBUG_
 		printf("StartWatchdog\n");
@@ -54,8 +55,7 @@ int main() {
 			printf("Clients: %d\n",clients);
 	}
 	
-	KillThread(&watchdog);
-	KillThread(&listenThread);
+	CancelThread(&watchdog);
 	CancelThread(&listenThread);
 	
 	close(socket);

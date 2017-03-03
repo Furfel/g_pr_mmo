@@ -1,15 +1,11 @@
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/socket.h>
 #include "players.h"
 
 #ifdef _DEBUG_
 #include <stdio.h>
 #endif
-Player* CreatePlayer(Thread* attachThread) {
-	Player* newPlayer = (Player*)malloc(sizeof(Player));
-	SetPlayerName(newPlayer,"Sammy");
-	return newPlayer;
-}
 
 void SetPlayerName(Player* player, char* name) {
 	int i=0;
@@ -22,6 +18,14 @@ void SetPlayerName(Player* player, char* name) {
 	else player->name[i-1]='\0';
 }
 
+Player* CreatePlayer(Thread* attachThread, int index) {
+	Player* newPlayer = (Player*)malloc(sizeof(Player));
+	SetPlayerName(newPlayer,"Sammy");
+	newPlayer->playerThread = attachThread;
+	newPlayer->index = index;
+	return newPlayer;
+}
+
 void UpdatePlayer(Player* player){
 	
 }
@@ -30,36 +34,71 @@ void DestroyPlayer(Player* player) {
 	free(player);
 }
 
-void* UpdatePlayersThreadFunction(void* arg) {
-	#ifdef _DEBUG_
-		printf("UpdatePlayers: starting...\n");
-	#endif
-	UpdatePlayersThreadArgument* this = (UpdatePlayersThreadArgument*) arg;
-	int i;
-	while(this->self->alive == THREAD_ALIVE) {
-		for(i=0;i < this->size;++i){
-			Player* player = &(this->players[i]);
-			if(player!=0) {
-				UpdatePlayer(player);
-				#ifdef _DEBUG_
-					printf("UpdatePlayers: updating %s",player->name);
-				#endif
-			}
-		}
-		usleep(this->sleep);
+void* PlayerThreadFunction(void* arg) {
+	Thread* this = (Thread*) arg;
+	PlayerThreadAttachment* attachment = this->attachment;
+	int socketf = attachment->socket;
+	Player* player = attachment->player;
+	int index = attachment->index;
+	free(attachment);
+	
+	char buffer[1024];
+	
+	struct timeval tv;
+	tv.tv_sec = 5;
+	tv.tv_usec = 0;
+	setsockopt(socketf,SOL_SOCKET,SO_RCVTIMEO,(const char*)&tv,sizeof(struct timeval));
+	
+	this->safety_mutex = (pthread_mutex_t*)malloc(sizeof(pthread_mutex_t));
+	pthread_mutex_init(this->safety_mutex,NULL);
+	this->last_active = time(NULL);
+	this->alive = THREAD_ALIVE;
+	
+	int r;
+	
+	pthread_mutex_lock(this->safety_mutex);
+	while(this->alive == THREAD_ALIVE) {
+		r = read(socketf,buffer,1023);
+		if(r < 0) printf("(%s) Error reading from socket.\n",player->name);
+		else if(r==0) {usleep(1000*25);}
+		else {printf("(%s) Read something...\n",player->name);this->last_active = time(NULL);}
 	}
 	#ifdef _DEBUG_
-		printf("UpdatePlayers: exiting\n");
+		printf("(%s) Closing socket\n",player->name);
 	#endif
-	free(this);
+	close(socketf);
+	pthread_mutex_unlock(this->safety_mutex);
+	
 	pthread_exit(NULL);
 }
 
-void StartPlayerThread(Thread* thread, int socket) {
-	//Player* player = CreatePlayer(thread);
-	char b;
-	thread->attachment = &b;
+void StartPlayerThread(Thread* thread, int index, int socket) {
 	#ifdef _DEBUG_
-		printf("Creating player and passing free thread and socket.\n");
+		printf("Creating player [%d] and passing free thread and socket.\n",index);
 	#endif
+	PlayerThreadAttachment* attachment = (PlayerThreadAttachment*)malloc(sizeof(PlayerThreadAttachment));
+	Player* player = CreatePlayer(thread, index);
+	attachment->player = player;
+	attachment->index = index;
+	attachment->socket = socket;
+	thread->attachment = attachment;
+	if(playerPtrs[index] != 0) {
+		#ifdef _DEBUG_
+			printf("Freeing player %d\n",index);
+		#endif
+		free(playerPtrs[index]);
+	}
+		playerPtrs[index]=player;
+	#ifdef _DEBUG_
+		printf("Starting player #%d thread.\n",index);
+	#endif
+	
+	pthread_t* tmp = (pthread_t*)malloc(sizeof(pthread_t));
+	pthread_create(tmp, NULL, PlayerThreadFunction, thread);
+	thread->self = tmp;
+}
+
+void InitPlayerPtrArray(Player** playerptrs, size_t size) {
+	for(int i=0;i<size;i++)
+		playerptrs[i] = 0;
 }

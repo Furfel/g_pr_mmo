@@ -13,6 +13,8 @@
 #define COMMAND 0x11
 #define SET_NAME 0x2
 
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 void nltozero(char* src, size_t size) {
     for(int i=0;i<size;i++) {
         if(src[i]=='\n' || src[i]=='\r')
@@ -22,6 +24,7 @@ void nltozero(char* src, size_t size) {
 
 int main(int argc, char* argv[]) {
     char* adres;
+    char name[40];
     if(argc > 1) {
         adres = argv[1];
     } else {
@@ -30,6 +33,15 @@ int main(int argc, char* argv[]) {
         bzero(adres,24);
         fgets(adres,23,stdin);
         nltozero(adres,23);
+    }
+
+    if(argc > 2) {
+        memcpy(name,argv[2],MIN(strlen(argv[2]),39));
+        printf("Ustawiono imie %s\n",name);
+    } else {
+        printf("Podaj imie gracza: ");
+        fgets(name,39,stdin);
+        nltozero(name,39);
     }
     
     int socketf;
@@ -53,7 +65,6 @@ int main(int argc, char* argv[]) {
     bcopy((char*) (serwer->h_addr),(char*)&serwer_socket.sin_addr.s_addr,serwer->h_length); //Wklej adres do struktury
     serwer_socket.sin_port = htons(PORT); //Wklej port w odpowiednim BOM do struktury
     
-    char name[40];
     char bufor[1024]; //Max 1KB bufora
     int n;
 
@@ -86,9 +97,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    printf("Podaj imie gracza: ");
-    fgets(name,39,stdin);
-    nltozero(name,39);
     bufor[0]=COMMAND;
     bufor[1]=SET_NAME;
     memcpy(bufor+2,name,40);
