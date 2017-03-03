@@ -1,0 +1,3 @@
+Kompilować serwer używając makefila.
+make release: tworzy bez debugu
+make: tworzy debug
