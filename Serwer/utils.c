@@ -1,5 +1,6 @@
 #include <pthread.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include "utils.h"
 
 #ifdef _DEBUG_
@@ -22,5 +23,7 @@ void KillThread(Thread* thread) {
 void CancelThread(Thread* thread) {
 	if(thread->alive == THREAD_ALIVE)
 		KillThread(thread);
-	pthread_cancel(*(thread->self)); //Tutaj jest segfault, to trzeba naprawic!!!
+	pthread_cancel(*(thread->self));
+	pthread_join(*(thread->self),NULL);
+	free(thread->self);
 }

@@ -72,9 +72,9 @@ void StartListening(Thread* thread, Thread* threads, size_t size, int socket) {
 	
 	thread->attachment = attachment;
 	thread->alive = THREAD_ALIVE;
-	pthread_t tmp;
-	pthread_create(&tmp, NULL, ListenerFunction, thread);
-	thread->self = &tmp;
+	pthread_t* tmp = (pthread_t*)malloc(sizeof(pthread_t));
+	pthread_create(tmp, NULL, ListenerFunction, thread);
+	thread->self = tmp;
 }
 
 int OpenSocket(int port, char* addr) {

@@ -70,7 +70,7 @@ void StartWatchdog(Thread* watchdogThread, Thread* threads, size_t size, usecond
 	#ifdef _DEBUG_
 		printf("StartWatchdog: Creating Watchdog thread\n");
 	#endif
-	pthread_t tmp;
-	pthread_create(&tmp, NULL, WatchdogFunction, (void*)watchdogThread);
-	watchdogThread->self = &tmp;
+	pthread_t* tmp = (pthread_t*)malloc(sizeof(pthread_t));
+	pthread_create(tmp, NULL, WatchdogFunction, (void*)watchdogThread);
+	watchdogThread->self = tmp;
 }
