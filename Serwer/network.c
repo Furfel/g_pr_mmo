@@ -16,43 +16,48 @@ void* ListenerFunction(void* arg) {
 		printf("Listener: starting...\n");
 	#endif
 	
-	Thread* this = (Thread*)arg;
+	Thread* this = (Thread*)arg; //Od teraz this to bedzie ten watek
+	
+	//Kopiujemy zmienne przeslane w zalaczniku
 	Thread* threads = ((ListenThreadAttachment*)this->attachment)->threads;
 	size_t size = ((ListenThreadAttachment*)this->attachment)->size;
 	int socket = ((ListenThreadAttachment*)this->attachment)->socket;
 	Player** playerptrs = ((ListenThreadAttachment*)this->attachment)->playerptrs;
-	free(this->attachment);
+	free(this->attachment); //Usuwamy zalacznik z pamieci bo niepotrzebny
 	
 	#ifdef _DEBUG_
 		printf("Listener: Max number of threads = %lu\n",size);
 	#endif
 	
 	while(this->alive == THREAD_ALIVE) {
-		struct sockaddr_in client_addr;
-		int clilen = sizeof(client_addr);
-		int newsocket = accept(socket,(struct sockaddr*) &client_addr, &clilen);
-		if(newsocket < 0) {
+		struct sockaddr_in client_addr; //Miejsce na adres klienta
+		int clilen = sizeof(client_addr); //rozmiar powyzszego
+		int newsocket = accept(socket,(struct sockaddr*) &client_addr, &clilen); //Czekamy na nowe polaczenie
+		if(newsocket < 0) { //Nie udalo sie polaczyc nikomu
 			char* address = inet_ntoa(client_addr.sin_addr);
 			printf("Listener: error accepting connection [%s]\n",address);
-		} else {
+		} else { //Udalo sie polaczyc komus
 			char* address = inet_ntoa(client_addr.sin_addr);
 			printf("Successfully accepted connection from [%s]\n",address);
+			
+			//Szukamy wolnego miejsca dla gracza
 			Thread* freet = 0;
 			int i;
 			for(i=0;i<size && freet == 0;i++)
 				if(threads[i].attachment == 0) freet = &threads[i];
+			
 			if(freet == 0) { //Znaczy ze nie ma miejsca xd
 				#ifdef _DEBUG_
 					printf("No more room for player!\n");
 				#endif
-				write(newsocket,WELCOME_NOSPACE_MESSAGE,WELCOME_NOSPACE_LENGTH);
+				write(newsocket,WELCOME_NOSPACE_MESSAGE,WELCOME_NOSPACE_LENGTH); //Wysylamy ze nie ma miejsca
 				close(newsocket); //Zamykamy bo nie ma miejsca
-			} else {
+			} else { //Jest miesjce!
 				#ifdef _DEBUG_
 					printf("Welcoming player and passing to new thread.\n");
 				#endif
-				write(newsocket,WELCOME_MESSAGE,WELCOME_MESSAGE_LENGTH); //Witamy na serwerze, jest miesjce!
-				StartPlayerThread(freet,i,newsocket,playerptrs);
+				write(newsocket, WELCOME_MESSAGE, WELCOME_MESSAGE_LENGTH); //Witamy na serwerze, jest miesjce!
+				StartPlayerThread(freet, i, newsocket, playerptrs); //Rozpoczynamy nowy watek dla gracza
 			}
 			
 		}
@@ -67,16 +72,20 @@ void* ListenerFunction(void* arg) {
 }
 
 void StartListening(Thread* thread, Thread* threads, size_t size, int socket, Player** playerptrs) {
+	//Budujemy zalacznik przekazany do watku
 	ListenThreadAttachment* attachment = (ListenThreadAttachment*)malloc(sizeof(ListenThreadAttachment));
 	attachment->socket = socket;
 	attachment->size = size;
 	attachment->threads = threads;
 	attachment->playerptrs = playerptrs;
 	
+	//Ustawiamy zalacznik w watku i parametry watku
 	thread->attachment = attachment;
 	thread->alive = THREAD_ALIVE;
 	thread->safety_mutex = 0;
 	pthread_t* tmp = (pthread_t*)malloc(sizeof(pthread_t));
+	
+	//Rozpoczynamy watek i przekazujemy watek do funkcji watku
 	pthread_create(tmp, NULL, ListenerFunction, thread);
 	thread->self = tmp;
 }

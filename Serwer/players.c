@@ -28,13 +28,14 @@ Player* CreatePlayer(Thread* attachThread, int index) {
 
 void UpdatePlayer(Player* player, char* commands){
 	if(commands!=0) {
+		//Jezeli wiadomosc to komenda
 		if(commands[0]==0x11) {
 			if(commands[1]==0x2) { //Tylko ustawianie imienia
 				#ifdef _DEBUG_
 					printf("Changing name to: %s\n",commands+2);
 				#endif
 				SetPlayerName(player,commands+2);
-			} else if(commands[1]==0x3) {
+			} else if(commands[1]==0x3) { //Ruszanie
 				switch(commands[2]) {
 					case 'w': --player->y; break;
 					case 's': ++player->y; break;
@@ -43,6 +44,7 @@ void UpdatePlayer(Player* player, char* commands){
 				}
 			}
 		}
+		//Wyzeruj: nie powtarzaj komendy
 		commands[0]=0x0;
 	}
 }
@@ -53,6 +55,8 @@ void DestroyPlayer(Player* player) {
 
 void* PlayerThreadFunction(void* arg) {
 	Thread* this = (Thread*) arg;
+	
+	//Zrzucamy zalacznik do zmiennych lokalnych i wywalamy go
 	PlayerThreadAttachment* attachment = this->attachment;
 	int socketf = attachment->socket;
 	Player* player = attachment->player;
@@ -78,7 +82,9 @@ void* PlayerThreadFunction(void* arg) {
 	pthread_mutex_lock(this->safety_mutex);
 	
 	while(this->alive == THREAD_ALIVE) {
+		//Odczytaj co wysyla klient
 		r = read(socketf,buffer,1023);
+		
 		if(r < 0) printf("(%s) Error reading from socket.\n",player->name);
 		else if(r==0) {
 			UpdatePlayer(player,0);
@@ -104,12 +110,19 @@ void StartPlayerThread(Thread* thread, int index, int socket, Player** playerptr
 	#ifdef _DEBUG_
 		printf("Creating player [%d] and passing free thread and socket.\n",index);
 	#endif
-	PlayerThreadAttachment* attachment = (PlayerThreadAttachment*)malloc(sizeof(PlayerThreadAttachment));
+	
+	//Tworzymy gracza w pamieci
 	Player* player = CreatePlayer(thread, index);
+	
+	//Budujemy zalacznik dla watku gracza
+	PlayerThreadAttachment* attachment = (PlayerThreadAttachment*)malloc(sizeof(PlayerThreadAttachment));
 	attachment->player = player;
 	attachment->index = index;
 	attachment->socket = socket;
+	
 	thread->attachment = attachment;
+	
+	//Dodajemy wskaznik gracza do pomocniczej tablicy
 	if(playerptrs[index] != 0) {
 		#ifdef _DEBUG_
 			printf("Freeing player %d\n",index);
@@ -121,6 +134,7 @@ void StartPlayerThread(Thread* thread, int index, int socket, Player** playerptr
 		printf("Starting player #%d thread.\n",index);
 	#endif
 	
+	//Startujemy pthread z parametrem do funkcji, ktorym jest watek
 	pthread_t* tmp = (pthread_t*)malloc(sizeof(pthread_t));
 	pthread_create(tmp, NULL, PlayerThreadFunction, thread);
 	thread->self = tmp;
