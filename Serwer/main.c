@@ -10,14 +10,11 @@
 #define WATCHDOG_SLEEP 1000*1000 //Ile ma spac watchdog
 #define PORT 9528
 
-pthread_t threads[MAX_THREADS];
-pthread_t waitThread;
-
 int main() {
 	
-	char addr[20];
+	char addr[20]; //Teoretycznie mial tu byc zwrocony nasz adres
 	
-	int socket = OpenSocket(PORT,addr);
+	int socket = OpenSocket(PORT,addr); //Otworz socket - network.h
 	if(socket == ERROR_SOCKET_OPEN) {
 		printf("Error opening socket\n");
 		return 1;
@@ -28,23 +25,24 @@ int main() {
 	
 	printf("Successfully created socket on %s:%d\n",addr,PORT);
 	
-	Thread gracze[MAX_THREADS];
-	Thread watchdog;
-	Thread listenThread;
+	Thread gracze[MAX_THREADS]; //Watki graczy
+	Thread watchdog; //Watek wartownika
+	Thread listenThread; //Watek sluchania nowych klientow
+	Player* playerPtrs[MAX_THREADS]; //Wskazniki dla graczy (pomocniczo, moze sie przydac aby nie bylo wyciekow)
 	
-	InitThreadArray(gracze,MAX_THREADS);
-	InitPlayerPtrArray(playerPtrs,MAX_THREADS);
+	InitThreadArray(gracze, MAX_THREADS); //Zerowanie watkow graczy - utils.h
+	InitPlayerPtrArray(playerPtrs, MAX_THREADS); //Zerowanie wskaznikow graczy - players.h
 	
 	#ifdef _DEBUG_
 		printf("StartWatchdog\n");
 	#endif
 	int clients;
-	StartWatchdog(&watchdog,gracze,MAX_THREADS,WATCHDOG_SLEEP,&clients);
+	StartWatchdog(&watchdog, gracze, MAX_THREADS, WATCHDOG_SLEEP, &clients); //Uruchamiam wartownika na tablicy gracze - watchdog.h
 	
 	#ifdef _DEBUG_
 		printf("StartListener\n");
 	#endif
-	StartListening(&listenThread,gracze,MAX_THREADS,socket);
+	StartListening(&listenThread, gracze, MAX_THREADS, socket, playerPtrs); //Uruchamiam nasluchiwanie nowych polaczen - network.h
 	
 	char key = 0;
 	while(key!='q' && key!='Q') {

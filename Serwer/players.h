@@ -15,30 +15,21 @@
 #define PLAYER_START_Y 4
 
 typedef struct {
-	char name[PLAYER_NAME_LENGTH];
-	Thread* playerThread;
-	int x;
-	int y;
-	int index;
+	char name[PLAYER_NAME_LENGTH]; //Imie gracza
+	Thread* playerThread; //Referencja do watku gracza
+	int x; //Pozycja x
+	int y; //Pozycja y
+	int index; //Informacyjnie index w tablicy playerPtrs i main.c: players
 } Player;
 
-Player* playerPtrs[MAX_THREADS];
-
 typedef struct {
-	Player* players;
-	size_t size;
-	useconds_t sleep;
-	Thread* self;
-} UpdatePlayersThreadArgument;
-
-typedef struct {
-	Player* player;
-	int socket;
-	int index;
+	Player* player; //Referencja do gracza
+	int socket; //Unikatowy socket gracza/klienta (nie serwera)
+	int index; //Informacyjnie index w tablicy playerPtrs i main.c: players
 } PlayerThreadAttachment;
 
 void DestroyPlayer(Player* player);
-void StartPlayerThread(Thread* thread, int index, int socket);
+void StartPlayerThread(Thread* thread, int index, int socket, Player** playerptrs);
 void InitPlayerPtrArray(Player** playerptrs, size_t size);
 
 #endif

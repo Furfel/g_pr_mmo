@@ -61,6 +61,7 @@ void* PlayerThreadFunction(void* arg) {
 	
 	char buffer[1024];
 	
+	//Timeout socketu na 5 sekund
 	struct timeval tv;
 	tv.tv_sec = 5;
 	tv.tv_usec = 0;
@@ -73,7 +74,9 @@ void* PlayerThreadFunction(void* arg) {
 	
 	int r;
 	
+	//Zablokuj watek przed anulowaniem, poniewaz mamy otwarty socket
 	pthread_mutex_lock(this->safety_mutex);
+	
 	while(this->alive == THREAD_ALIVE) {
 		r = read(socketf,buffer,1023);
 		if(r < 0) printf("(%s) Error reading from socket.\n",player->name);
@@ -83,19 +86,21 @@ void* PlayerThreadFunction(void* arg) {
 		} else {
 			this->last_active = time(NULL);
 			UpdatePlayer(player,buffer);
-			usleep(1000*20);
+			usleep(1000*25);
 		}
 	}
+	
 	#ifdef _DEBUG_
 		printf("(%s) Closing socket\n",player->name);
 	#endif
 	close(socketf);
 	pthread_mutex_unlock(this->safety_mutex);
+	//Odblokowany watek mozna anulowac
 	
 	pthread_exit(NULL);
 }
 
-void StartPlayerThread(Thread* thread, int index, int socket) {
+void StartPlayerThread(Thread* thread, int index, int socket, Player** playerptrs) {
 	#ifdef _DEBUG_
 		printf("Creating player [%d] and passing free thread and socket.\n",index);
 	#endif
@@ -105,13 +110,13 @@ void StartPlayerThread(Thread* thread, int index, int socket) {
 	attachment->index = index;
 	attachment->socket = socket;
 	thread->attachment = attachment;
-	if(playerPtrs[index] != 0) {
+	if(playerptrs[index] != 0) {
 		#ifdef _DEBUG_
 			printf("Freeing player %d\n",index);
 		#endif
-		free(playerPtrs[index]);
+		free(playerptrs[index]);
 	}
-		playerPtrs[index]=player;
+		playerptrs[index]=player;
 	#ifdef _DEBUG_
 		printf("Starting player #%d thread.\n",index);
 	#endif

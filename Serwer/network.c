@@ -20,6 +20,7 @@ void* ListenerFunction(void* arg) {
 	Thread* threads = ((ListenThreadAttachment*)this->attachment)->threads;
 	size_t size = ((ListenThreadAttachment*)this->attachment)->size;
 	int socket = ((ListenThreadAttachment*)this->attachment)->socket;
+	Player** playerptrs = ((ListenThreadAttachment*)this->attachment)->playerptrs;
 	free(this->attachment);
 	
 	#ifdef _DEBUG_
@@ -51,7 +52,7 @@ void* ListenerFunction(void* arg) {
 					printf("Welcoming player and passing to new thread.\n");
 				#endif
 				write(newsocket,WELCOME_MESSAGE,WELCOME_MESSAGE_LENGTH); //Witamy na serwerze, jest miesjce!
-				StartPlayerThread(freet,i,newsocket);
+				StartPlayerThread(freet,i,newsocket,playerptrs);
 			}
 			
 		}
@@ -65,11 +66,12 @@ void* ListenerFunction(void* arg) {
 	
 }
 
-void StartListening(Thread* thread, Thread* threads, size_t size, int socket) {
+void StartListening(Thread* thread, Thread* threads, size_t size, int socket, Player** playerptrs) {
 	ListenThreadAttachment* attachment = (ListenThreadAttachment*)malloc(sizeof(ListenThreadAttachment));
 	attachment->socket = socket;
 	attachment->size = size;
 	attachment->threads = threads;
+	attachment->playerptrs = playerptrs;
 	
 	thread->attachment = attachment;
 	thread->alive = THREAD_ALIVE;

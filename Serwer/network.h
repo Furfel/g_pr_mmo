@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include "utils.h"
+#include "players.h"
 
 #define ERROR_SOCKET_OPEN -2
 #define ERROR_SOCKET_BIND -3
@@ -17,9 +18,10 @@ typedef struct {
 	Thread* threads;
 	size_t size;
 	int socket;
+	Player** playerptrs;
 } ListenThreadAttachment;
 
-void StartListening(Thread* thread, Thread* playerThreads, size_t size, int socket);
+void StartListening(Thread* thread, Thread* playerThreads, size_t size, int socket, Player** playerptrs);
 int OpenSocket(int port, char* addr);
 
 #endif

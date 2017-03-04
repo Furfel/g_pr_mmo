@@ -10,12 +10,13 @@
  * */
 
 typedef struct {
-	Thread* threads;
-	size_t size;
-	useconds_t sleep;
-	unsigned int* alive_threads;
+	Thread* threads; //Watki jakie watchdog ma przegladac
+	size_t size; //Rozmiar tablicy threads
+	useconds_t sleep; //Ile ma odczekac po sprawdzeniu
+	unsigned int* alive_threads; //Zwraca informacyjnie ile watkow
 } WatchdogThreadAttachment;
 
+//StartWatchdog(Watek wartownika, Watki do pilnowania, rozmiar tablicy watkow, ile spac, zwrot z informacja)
 void StartWatchdog(Thread* watchdogThread, Thread* threads, size_t size, useconds_t sleep, unsigned int* alive_return);
 
 #endif

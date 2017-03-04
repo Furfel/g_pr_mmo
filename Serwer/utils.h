@@ -18,12 +18,12 @@
 #include <sys/socket.h>
 
 typedef struct {
-	pthread_t* self;
-	pthread_mutex_t* safety_mutex;
-	unsigned long last_active;
-	char alive;
-	void* attachment;
-} Thread;
+	pthread_t* self; //Watek itself
+	pthread_mutex_t* safety_mutex; //Blokada dla watkow graczy (inaczej nie uzywane)
+	unsigned long last_active; //Ostatnio aktywny dla graczy (inaczej nie uzywane)
+	char alive; //Czy watek ma sie krecic: while(thread->alive == THREAD_ALIVE)
+	void* attachment; //Zalacznik (przesylamy tu dodatkowe dane dla pracy watku)
+} Thread; //Podstawowa struktura watku
 
 void InitThreadArray(Thread* threads,size_t size);
 void KillThread(Thread* thread);
