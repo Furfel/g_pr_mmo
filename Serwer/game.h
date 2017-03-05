@@ -22,6 +22,7 @@ unsigned int MapWidth;
 unsigned int MapHeight;
 
 void CreateMap(Tile** tiles, unsigned int map_width, unsigned int map_height);
+void DestroyMap(Tile** tiles, pthread_mutex_t** chunklocks);
 short PushTile(Tile* tile, char item);
 unsigned char PopTile(Tile* tile);
 unsigned char TopTile(Tile* tile);
