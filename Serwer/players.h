@@ -13,6 +13,7 @@
 #define PLAYER_NAME_LENGTH 30
 #define PLAYER_START_X 4
 #define PLAYER_START_Y 4
+#define PLAYER_VIEW_RADIUS 3
 
 typedef struct {
 	char name[PLAYER_NAME_LENGTH]; //Imie gracza

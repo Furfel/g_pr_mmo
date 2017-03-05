@@ -8,8 +8,8 @@ debug : gameserver
 
 release : gameserver
 
-gameserver : players.o main.o utils.o network.o watchdog.o
-	gcc -o build/gameserver$(BIN_SUFFIX) main.o utils.o players.o network.o watchdog.o $(LIB)
+gameserver : players.o main.o utils.o network.o watchdog.o game.o
+	gcc -o build/gameserver$(BIN_SUFFIX) main.o utils.o players.o network.o watchdog.o game.o $(LIB)
 	make clean
 	
 main.o : main.c utils.h network.h players.h
@@ -26,6 +26,9 @@ network.o : network.c network.h players.h
 	
 watchdog.o : watchdog.c watchdog.h utils.h
 	gcc $(CFLAGS) -c watchdog.c
+
+game.o : game.c game.h utils.h
+	gcc $(CFLAGS) -c game.c
 
 clean:
 	rm *.o

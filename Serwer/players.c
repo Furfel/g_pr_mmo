@@ -2,10 +2,35 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include "players.h"
-
-#ifdef _DEBUG_
+#include "game.h"
 #include <stdio.h>
-#endif
+
+unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigned short center_y, Tile** tiles) {
+	if(tiles == 0 || out_buffer == 0) return 0;
+	short start_x = center_x-PLAYER_VIEW_RADIUS;
+	short start_y = center_y-PLAYER_VIEW_RADIUS;
+	short end_x = center_x+PLAYER_VIEW_RADIUS;
+	short end_y = center_y+PLAYER_VIEW_RADIUS;
+	short x,y,z;
+	unsigned int index = 0;
+	for(y=start_y;y<=end_y;++y)
+		for(x=start_x;x<=end_x;++x) {
+			if(x<0||y<0||x>=MapWidth||y>=MapHeight) {
+				out_buffer[index]=0; ++index;
+			} else {
+				out_buffer[index]=tiles[y][x].count; ++index;
+				for(z=0;z<tiles[y][x].count;++z) {
+					out_buffer[index]=tiles[y][x].items[z]; ++index;
+				}
+			}
+	}
+	
+	#ifdef _DEBUG_
+		printf("Prepared view of %ud bytes\n",index);
+	#endif
+	
+	return index;
+}
 
 void SetPlayerName(Player* player, char* name) {
 	int i=0;
@@ -77,6 +102,7 @@ void* PlayerThreadFunction(void* arg) {
 	this->alive = THREAD_ALIVE;
 	
 	int r;
+	unsigned int w;
 	
 	//Zablokuj watek przed anulowaniem, poniewaz mamy otwarty socket
 	pthread_mutex_lock(this->safety_mutex);
@@ -92,6 +118,8 @@ void* PlayerThreadFunction(void* arg) {
 		} else {
 			this->last_active = time(NULL);
 			UpdatePlayer(player,buffer);
+			w=PreparePlayerMap(buffer,player->x,player->y,map);
+			write(socketf, buffer, w);
 			usleep(1000*25);
 		}
 	}
