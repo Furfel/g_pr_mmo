@@ -14,7 +14,7 @@ public class Client {
 		window = new JFrame(name+"@"+server);
 		window.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		window.setResizable(false);
-		display = new JDisplay();
+		display = new JDisplay(this);
 		window.add(display);
 		window.pack();
 		window.setVisible(true);
