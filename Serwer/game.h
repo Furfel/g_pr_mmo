@@ -13,7 +13,7 @@
 
 typedef struct {
 	unsigned char items[MAX_TILE_DEPTH];
-	unsigned short count;
+	unsigned char count;
 } Tile;
 
 pthread_mutex_t** chunk_locks;

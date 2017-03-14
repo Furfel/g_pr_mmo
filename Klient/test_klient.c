@@ -125,10 +125,10 @@ int main(int argc, char* argv[]) {
 
     if(bufor[0]==WELCOME_BYTE) {
         bufor[0]=' ';
-        printf("(Server):%s\n",bufor);
+        printf("(Server):%s\n",bufor+1);
     } else if(bufor[0]==WELCOME_NOSPACE){
         bufor[0]=' ';
-        printf("(Server full):%s\n",bufor);
+        printf("(Server full):%s\n",bufor+1);
         close(socketf);
         return 0;
     } else {
@@ -141,15 +141,52 @@ int main(int argc, char* argv[]) {
     bufor[1]=SET_NAME;
     memcpy(bufor+2,name,40);
     
-    n = write(socketf,bufor,strlen(bufor));
+    printf("<<<Setting name\n");
+	n = write(socketf,bufor,strlen(bufor));
     if(n<0) {
         printf("Can\'t send to server!\n");
         close(socketf);
         return 1;
     }
     
-    char c;
-    int i=0;
+    printf("...Sleeping 50ms\n");
+    usleep(1000*50);
+    short x,y,index;
+    unsigned char count,z,c;
+    int i;
+    
+    for(i=0;i<10;i++) {
+    
+		printf(">>>Reading map\n");
+		n = read(socketf,bufor,strlen(bufor));
+		if(n<0) {
+			printf("Cannot read!\n");
+		} else {
+			index=0;
+			for(y=0;y<=6;++y) {
+				for(x=0;x<=6;++x) {
+					count = bufor[index]; ++index;
+					for(z=0;z<count;z++) {
+						c = bufor[index]; ++index;
+					}
+					printf("%d%d:",c%10,count%10);
+				}
+				printf("\n");
+			}
+		}
+		
+		c=(i%2==0?(i%4==0?'w':'s'):(i%3==0?'a':'d'));
+		printf("<<<Moving %c\n",c);
+		bufor[0]=COMMAND;
+		bufor[1]=MOVE;
+		bufor[2]=c;
+		bufor[3]=0x0;
+		write(socketf,bufor,strlen(bufor));
+	
+		printf("...Sleeping 100ms\n");
+		usleep(1000*100);
+		
+	}
  
     nonblock(1);
     while(!i)
