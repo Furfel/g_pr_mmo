@@ -18,6 +18,9 @@ public class MapEditor extends JFrame implements ActionListener {
 	private Edit edit;
 	
 	public MapEditor(String load) {
+		
+		//TODO jakies definicje obiektow niech wczytuje w jakiejs formie
+		
 		menuBar = new JMenuBar();
 		constructMenu(menuBar);
 		this.setJMenuBar(menuBar);
@@ -61,9 +64,9 @@ public class MapEditor extends JFrame implements ActionListener {
 			saveFileChooser.showSaveDialog(null);
 		} else if(e.getActionCommand().equals(JFileChooser.APPROVE_OPTION)) {
 			if(e.getSource()==openFileChooser) {
-				
+				//Tutaj "otworz plik" zostalo wybrane w dialogu
 			} else if(e.getSource()==saveFileChooser) {
-				
+				//tutaj "zapisz plik" zostalo wybrane w dialogi
 			}
 		}
 	}

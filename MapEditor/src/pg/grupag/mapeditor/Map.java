@@ -1,5 +1,7 @@
 package pg.grupag.mapeditor;
 
+import java.io.File;
+
 public class Map {
 
 	private short width = 32, height = 32;
@@ -35,6 +37,14 @@ public class Map {
 	
 	public byte[] getObjects(int x, int y) {
 		return objects[x][y];
+	}
+	
+	public void save(File f) {
+		//ZAPISYWANIE
+	}
+	
+	public void load(File f) {
+		//Czytanie!
 	}
 
 }

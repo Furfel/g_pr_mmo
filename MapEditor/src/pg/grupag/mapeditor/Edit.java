@@ -17,9 +17,9 @@ import javax.swing.JPanel;
 
 public class Edit extends JPanel implements MouseMotionListener, MouseListener, KeyListener {
 
-	public int x=-1, y=-1;
-	public int offsetX=0, offsetY=0;
-	public static final int VIEW_W=16, VIEW_H=16;
+	public int x=-1, y=-1; //pozycja myszki
+	public int offsetX=0, offsetY=0; //przesuniecie kamery
+	public static final int VIEW_W=16, VIEW_H=16; //rozmiar widoku
 	private Map map = new Map();
 	private Image sprites = null;
 	private int spritesW=4, spritesH=2;
@@ -46,14 +46,27 @@ public class Edit extends JPanel implements MouseMotionListener, MouseListener, 
 		g.clearRect(0, 0, getWidth(), getHeight());
 		if(sprites != null) g.drawImage(sprites, 0, 0, getWidth(), getHeight(), 0, 0, 32, 32, null);
 		g.setColor(Color.GRAY);
-		for(int y=offsetY;y<=offsetY+VIEW_H;y++)
-			for(int x=offsetX;x<=offsetX+VIEW_W;x++) {
-				g.drawRect((x-offsetX)*32, (y-offsetY)*32, 32, 32);
-					if(y>=0 && x>=0 && y<map.getHeight() && x<map.getWidth()) {
-						byte[] spr = map.getObjects(x, y);
+		
+		for(int y=offsetY;y<=offsetY+VIEW_H;y++) //rysujemy od gory do dolu
+			for(int x=offsetX;x<=offsetX+VIEW_W;x++) { //od lewej do prawej
+				
+				g.drawRect((x-offsetX)*32, (y-offsetY)*32, 32, 32); //Kwadrat do siatki - nieistotne
+				
+					if(y>=0 && x>=0 && y<map.getHeight() && x<map.getWidth()) { //sprawdzamy czy miescimy sie w zakresie
+						byte[] spr = map.getObjects(x, y); //bierzemy obiekty z mapy
 						for(int i=0;i<spr.length;i++) {
-							if(spr[i]>0)
-								g.drawImage(sprites, (x-offsetX)*32, (y-offsetY)*32, (x-offsetX)*32+32, (y-offsetY)*32+32, spr[i]%spritesW*32, spr[i]/spritesW*32, spr[i]%spritesW*32+32, spr[i]/spritesW*32+32, null);
+							if(spr[i]>0) //jezeli obiekt jest wiekszy od zera
+								//TODO tutaj mala zmiana, powinno rysowac obiekty a nie sprity, a jak sa 2x2 to ten x,y jest prawa, dolna kratka (jak w tibii), czyli rysujemy dodatkowe sprity do gory i w lewo od tego
+								g.drawImage(sprites,
+										(x-offsetX)*32, //lewy gorny rog kwadratu w oknie
+										(y-offsetY)*32,
+										(x-offsetX)*32+32,
+										(y-offsetY)*32+32,
+										spr[i]%spritesW*32, //lewy gorny rog kwadratu w pliku .png
+										spr[i]/spritesW*32,
+										spr[i]%spritesW*32+32,
+										spr[i]/spritesW*32+32,
+									null);
 						}
 					}
 				}
@@ -81,34 +94,30 @@ public class Edit extends JPanel implements MouseMotionListener, MouseListener, 
 			if(offsetX<map.getWidth()-VIEW_W-2)
 				offsetX++;
 		} else if(e.getKeyCode()==KeyEvent.VK_A) {
-			if(object>0) object--;
+			if(object>0) object--; //wybrany obiekt na minus
 		} else if(e.getKeyCode()==KeyEvent.VK_Z) {
-			if(object<120) object++;
+			if(object<120) object++; //wybierz nastepny obiekt
 		}
 		repaint();
 	}
 
 	@Override
 	public void keyReleased(KeyEvent e) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void keyTyped(KeyEvent e) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void mouseClicked(MouseEvent e) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void mouseEntered(MouseEvent e) {
-		// TODO Auto-generated method stub
 		
 	}
 
@@ -123,18 +132,18 @@ public class Edit extends JPanel implements MouseMotionListener, MouseListener, 
 		requestFocusInWindow();
 		int x = e.getX()/32;
 		int y = e.getY()/32;
+		
+		//TODO put na LPM, niech usuwa (pop) na prawy
 		map.putObject(object, x+offsetX, y+offsetY);
 	}
 
 	@Override
 	public void mouseReleased(MouseEvent e) {
-		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
 	public void mouseDragged(MouseEvent e) {
-		// TODO Auto-generated method stub
 		
 	}
 
