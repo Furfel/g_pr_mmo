@@ -61,12 +61,15 @@ public class MapEditor extends JFrame implements ActionListener {
 		} else if (e.getActionCommand().equalsIgnoreCase("open")) {
 			openFileChooser.showOpenDialog(null);
 		} else if(e.getActionCommand().equalsIgnoreCase("save")) {
-			saveFileChooser.showSaveDialog(null);
+			int ret = saveFileChooser.showSaveDialog(null);
+			if(ret == JFileChooser.APPROVE_OPTION)
+				if(saveFileChooser.getSelectedFile()!=null)
+					edit.getMap().save(saveFileChooser.getSelectedFile());
 		} else if(e.getActionCommand().equals(JFileChooser.APPROVE_OPTION)) {
 			if(e.getSource()==openFileChooser) {
 				//Tutaj "otworz plik" zostalo wybrane w dialogu
 			} else if(e.getSource()==saveFileChooser) {
-				//tutaj "zapisz plik" zostalo wybrane w dialogi
+				
 			}
 		}
 	}

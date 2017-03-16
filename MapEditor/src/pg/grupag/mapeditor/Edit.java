@@ -153,6 +153,10 @@ public class Edit extends JPanel implements MouseMotionListener, MouseListener, 
 		repaint();
 	}
 	
+	public Map getMap() {
+		return map;
+	}
+	
 	public interface MapInterface {
 		
 	}

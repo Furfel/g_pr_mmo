@@ -1,6 +1,8 @@
 package pg.grupag.mapeditor;
 
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 
 public class Map {
 
@@ -40,7 +42,17 @@ public class Map {
 	}
 	
 	public void save(File f) {
-		//ZAPISYWANIE
+		try(DataOutputStream out = new DataOutputStream(new FileOutputStream(f))) {
+			out.writeShort(width);
+			out.writeShort(height);
+			for(int y=0;y<getHeight();++y)
+				for(int x=0;x<getWidth();++x)
+					for(int z=0;z<24;z++)
+						out.writeByte(objects[x][y][z]);
+			out.close();
+		} catch(Exception e) {
+			System.err.println(e.getMessage());
+		}
 	}
 	
 	public void load(File f) {
