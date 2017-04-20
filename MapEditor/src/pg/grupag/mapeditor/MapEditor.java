@@ -5,7 +5,9 @@ import java.awt.HeadlessException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.util.concurrent.locks.Lock;
 
+import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -42,6 +44,15 @@ public class MapEditor extends JFrame implements ActionListener {
 		save.addActionListener(this);
 		file.add(newItem); file.add(open); file.add(save);
 		bar.add(file);
+		JMenu edit = new JMenu("Edit");
+		JMenuItem flatten = new JMenuItem("Flatten");
+		flatten.addActionListener(this);
+		edit.add(flatten);
+		JCheckBoxMenuItem showAmnt = new JCheckBoxMenuItem("Show depth");
+		showAmnt.setState(false);
+		showAmnt.addActionListener(this);
+		edit.add(showAmnt);
+		bar.add(edit);
 	}
 
 	public static void main(String[] args) {
@@ -59,7 +70,10 @@ public class MapEditor extends JFrame implements ActionListener {
 		if(e.getActionCommand().equalsIgnoreCase("new")) {
 			
 		} else if (e.getActionCommand().equalsIgnoreCase("open")) {
-			openFileChooser.showOpenDialog(null);
+			int ret = openFileChooser.showOpenDialog(null);
+			if(ret == JFileChooser.APPROVE_OPTION)
+				if(openFileChooser.getSelectedFile()!=null)
+					edit.getMap().load(openFileChooser.getSelectedFile());
 		} else if(e.getActionCommand().equalsIgnoreCase("save")) {
 			int ret = saveFileChooser.showSaveDialog(null);
 			if(ret == JFileChooser.APPROVE_OPTION)
@@ -71,6 +85,11 @@ public class MapEditor extends JFrame implements ActionListener {
 			} else if(e.getSource()==saveFileChooser) {
 				
 			}
+		} else if(e.getActionCommand().equalsIgnoreCase("flatten")) {
+			edit.getMap().flatten();
+		} else if(e.getActionCommand().equalsIgnoreCase("show depth")) {
+			edit.showAmnt = !edit.showAmnt;
+			((JCheckBoxMenuItem) e.getSource()).setState(edit.showAmnt);
 		}
 	}
 	

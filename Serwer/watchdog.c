@@ -11,7 +11,7 @@
 
 void* WatchdogFunction(void* arg) {
 	#ifdef _DEBUG_
-		printf("Watchdog: Starting...\n");
+		printf(CLR_C"Watchdog:"CLR_N" Starting...\n");
 	#endif
 	
 	Thread* this = (Thread*)arg;
@@ -37,7 +37,7 @@ void* WatchdogFunction(void* arg) {
 			if(threads[i].alive == THREAD_ALIVE) {
 				if (threads[i].last_active < current_time) {
 					#ifdef _DEBUG_
-						printf("Watchdog: cancelling thread %d\n",i);
+						printf(CLR_Y"Watchdog:"CLR_N" cancelling thread %d\n",i);
 					#endif
 					CancelThread(&threads[i]);
 				} else {
@@ -49,21 +49,21 @@ void* WatchdogFunction(void* arg) {
 			*(alive_threads_ptr) = alive_threads;
 		#ifdef _DEBUG_
 			if(debug_iters == MIN_DEBUG_ITERS) {
-				printf("Watchdog: reporting alive threads = %d\n",alive_threads);
+				printf(CLR_C"Watchdog:"CLR_N" reporting alive threads = %d\n",alive_threads);
 				debug_iters=0;
 			} else ++debug_iters;
 		#endif
 		usleep(sleep);
 	}
 	#ifdef _DEBUG_
-		printf("Watchdog: exiting\n");
+		printf(CLR_Y"Watchdog:"CLR_N" exiting\n");
 	#endif
 	pthread_exit(NULL);
 }
 
 void StartWatchdog(Thread* watchdogThread, Thread* threads, size_t size, useconds_t sleep,unsigned int* alive_threads) {
 	#ifdef _DEBUG_
-		printf("StartWatchdog: Setting up thread parameters\n");
+		printf(CLR_C"StartWatchdog:"CLR_N" Setting up thread parameters\n");
 	#endif
 	WatchdogThreadAttachment* attachment = (WatchdogThreadAttachment*)malloc(sizeof(WatchdogThreadAttachment));
 	attachment->threads = threads;
@@ -75,7 +75,7 @@ void StartWatchdog(Thread* watchdogThread, Thread* threads, size_t size, usecond
 	watchdogThread->alive = THREAD_ALIVE;
 	watchdogThread->safety_mutex = 0;
 	#ifdef _DEBUG_
-		printf("StartWatchdog: Creating Watchdog thread\n");
+		printf(CLR_C"StartWatchdog:"CLR_N" Creating Watchdog thread\n");
 	#endif
 	pthread_t* tmp = (pthread_t*)malloc(sizeof(pthread_t));
 	pthread_create(tmp, NULL, WatchdogFunction, (void*)watchdogThread);

@@ -1,8 +1,11 @@
 package pg.grupag.mapeditor;
 
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.util.concurrent.locks.Lock;
 
 public class Map {
 
@@ -55,7 +58,27 @@ public class Map {
 		}
 	}
 	
-	public void load(File f) {
+	public void flatten() {
+		for(int x=0;x<getWidth();++x)
+			for(int y=0;y<getHeight();++y)
+				for(int i=1;i<24;++i)
+					objects[x][y][i]=0;
+	}
+	
+	public synchronized void load(File f) {
+		try(DataInputStream in = new DataInputStream(new FileInputStream(f))) {
+			width = in.readShort();
+			height = in.readShort();
+			objects = new byte[width][height][24];
+			for(int y=0;y<getHeight();++y)
+				for(int x=0;x<getWidth();++x)
+					for(int z=0;z<24;z++)
+						objects[x][y][z]=in.readByte();
+			in.close();
+		} catch(Exception e) {
+			System.err.println(e.getMessage());
+		} finally {
+		}
 		//Czytanie!
 	}
 

@@ -1,10 +1,14 @@
 CFLAGS=
-LIB=-lpthread
+LIB=-lpthread -lm
 BIN_SUFFIX=
 
 debug : CFLAGS=-D_DEBUG_ -g
 debug : BIN_SUFFIX=-debug
 debug : gameserver
+
+harddebug : CFLAGS=-D_DEBUG_ -D_HARDDEBUG_ -g
+harddebug : BIN_SUFFIX=-debug
+harddebug : gameserver
 
 release : gameserver
 
@@ -12,7 +16,7 @@ gameserver : players.o main.o utils.o network.o watchdog.o game.o
 	gcc -o build/gameserver$(BIN_SUFFIX) main.o utils.o players.o network.o watchdog.o game.o $(LIB)
 	make clean
 	
-main.o : main.c utils.h network.h players.h
+main.o : main.c utils.h network.h players.h game.h
 	gcc $(CFLAGS) -c main.c
 
 utils.o : utils.c utils.h

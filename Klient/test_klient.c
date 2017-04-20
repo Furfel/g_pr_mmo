@@ -8,6 +8,9 @@
 #include <unistd.h>
 #include <termios.h>
 #include <fcntl.h>
+#include <ncurses.h>
+#include <sys/time.h>
+#include <string.h>
 
 #define PORT 9528
 #define WELCOME_BYTE 0x7
@@ -17,7 +20,54 @@
 #define SET_NAME 0x2
 #define MOVE 0x3
 
+#define LOG_LINES 3
+
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+unsigned long Tick() {
+	struct timeval tv;
+	gettimeofday(&tv,NULL);
+	return tv.tv_sec * 1000000 + tv.tv_usec;
+}
+
+char* logLines[LOG_LINES];
+
+void PushLog(const char* log, ...) {
+	printf("Fin");
+	if(logLines[LOG_LINES-1]!=NULL) free(logLines[LOG_LINES-1]);
+	return;
+	unsigned char log_lines;
+	for(log_lines=LOG_LINES-1;log_lines>0;--log_lines)
+		logLines[log_lines]=logLines[log_lines-1];
+	size_t len;
+	va_list arg;
+	va_start(arg,log);
+	len = vsnprintf(NULL,0,log,arg);
+	logLines[0]=(char*)calloc(1,len+1);
+	vsprintf(logLines[0],log,arg);
+	va_end(arg);
+}
+
+void redraw(char* bufor) {
+	int y,x,z,index;
+	char count,c;
+	for(y=0;y<=6;++y) {
+		for(x=0;x<=6;++x) {
+			count = bufor[index]; ++index;
+				for(z=0;z<count;z++) {
+					c = bufor[index]; ++index;
+				}
+			printf("%d",(int)(c%100));
+			}
+		move(y,x*3);
+	}
+	int i;
+	for(i=0;i<LOG_LINES;++i) {
+		move(8+i,2);
+		if(logLines[i]!=NULL)
+			printf("%s",logLines[i]);
+	}
+}
 
 int kbhit()
 {
@@ -63,6 +113,9 @@ void nltozero(char* src, size_t size) {
 }
 
 int main(int argc, char* argv[]) {
+	int i;
+	for(i=0;i<LOG_LINES;++i) logLines[i]=NULL;
+	
     char* adres;
     char name[40];
     bzero(name,40);
@@ -125,14 +178,14 @@ int main(int argc, char* argv[]) {
 
     if(bufor[0]==WELCOME_BYTE) {
         bufor[0]=' ';
-        printf("(Server):%s\n",bufor+1);
+        PushLog("(Server):%s\n",bufor+1);
     } else if(bufor[0]==WELCOME_NOSPACE){
         bufor[0]=' ';
-        printf("(Server full):%s\n",bufor+1);
+        PushLog("(Server full):%s\n",bufor+1);
         close(socketf);
         return 0;
     } else {
-        printf("Bad handshake (is it the server?)\n");
+        PushLog("Bad handshake (is it the server?)\n");
         close(socketf);
         return 1;
     }
@@ -148,21 +201,47 @@ int main(int argc, char* argv[]) {
         close(socketf);
         return 1;
     }
+   
     
-    printf("...Sleeping 50ms\n");
-    usleep(1000*50);
+    unsigned long tm; tm = Tick();
+    initscr();
+    raw();
+    keypad(stdscr, TRUE);
+    noecho();
+    nodelay(stdscr,TRUE);
+    tm = Tick() - tm;
+    printf("...Sleeping %lums\n",(1000*50-tm)/1000);
+    usleep(1000*50-tm);
+    
+    char ch; ch=0x1;
+    while(ch != 'q') {
+		ch = getch();
+		n = read(socketf,bufor,1023);
+		if(n<0)
+			PushLog("Cannot read!\n");
+		else {
+			PushLog(">>>Read\n");
+			redraw(bufor);
+		}
+		refresh();
+		usleep(1000*50);
+	}
+    
+    endwin();
+    return 0;
+    
     short x,y,index;
     unsigned char count,z,c;
-    int i;
     
     for(i=0;i<10;i++) {
     
 		printf(">>>Reading map\n");
-		n = read(socketf,bufor,strlen(bufor));
+		n = read(socketf,bufor,1023);
 		if(n<0) {
 			printf("Cannot read!\n");
 		} else {
-			index=0;
+            printf(">>>Read %d\n",n);
+			index=3;
 			for(y=0;y<=6;++y) {
 				for(x=0;x<=6;++x) {
 					count = bufor[index]; ++index;
@@ -218,8 +297,6 @@ int main(int argc, char* argv[]) {
     }
     printf("\n you hit %c. \n",c);
     nonblock(2);
-
-    
 
     return 0;
 }

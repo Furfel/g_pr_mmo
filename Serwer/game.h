@@ -10,6 +10,27 @@
 #define NOITEM 0xFF
 #define NO_TILE_SPACE -1
 #define ITEM_PUSHED 1
+#define MAX_BULLETS 64
+#define BULLET_EMPTY 0
+#define BULLET_FIRE 1
+#define BULLET_EARTH 2
+#define BULLET_KNIFE 3
+#define BULLET_FIRE_DISTANCE 200.0f
+#define BULLET_EARTH_DISTANCE 280.0f
+#define BULLET_KNIFE_DISTANCE 140.0f
+#define BULLET_FIRE_SPEED 10.0f
+#define BULLET_EARTH_SPEED 6.0f
+#define BULLET_KNIFE_SPEED 12.0f
+
+typedef struct {
+	unsigned char type;
+	float start_x;
+	float start_y;
+	float angle;
+	float x;
+	float y;
+	float r;
+} Bullet;
 
 typedef struct {
 	unsigned char items[MAX_TILE_DEPTH];
@@ -21,10 +42,21 @@ Tile** map;
 unsigned int MapWidth;
 unsigned int MapHeight;
 
-void CreateMap(Tile** tiles, unsigned int map_width, unsigned int map_height);
+Bullet bullets[MAX_BULLETS];
+unsigned int bullet_id;
+pthread_mutex_t bullet_lock;
+
+Tile** CreateMap(unsigned int map_width, unsigned int map_height);
 void DestroyMap(Tile** tiles, pthread_mutex_t** chunklocks);
+void ReadMap(Tile*** dst, const char* name);
 short PushTile(Tile* tile, char item);
 unsigned char PopTile(Tile* tile);
 unsigned char TopTile(Tile* tile);
+signed char IsBlockingXY(unsigned short, unsigned short);
+void InitBullets();
+void CreateBullet(float, float, float);
+void StartGame(Thread*);
+void DumpMap(int,int,int,int);
+
 
 #endif

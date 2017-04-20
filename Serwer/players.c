@@ -4,8 +4,9 @@
 #include "players.h"
 #include "game.h"
 #include <stdio.h>
+#include <sys/time.h>
 
-unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigned short center_y, Tile** tiles) {
+unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigned short center_y, Tile** tiles, Player* player) {
 	if(tiles == 0 || out_buffer == 0) return 0;
 	short start_x = center_x-PLAYER_VIEW_RADIUS;
 	short start_y = center_y-PLAYER_VIEW_RADIUS;
@@ -13,20 +14,64 @@ unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigne
 	short end_y = center_y+PLAYER_VIEW_RADIUS;
 	short x,y,z;
 	unsigned int index = 0;
+	out_buffer[index]=player->xMilis; ++index;
+	out_buffer[index]=player->yMilis; ++index;
+	out_buffer[index]=player->direction; ++index;
 	for(y=start_y;y<=end_y;++y)
 		for(x=start_x;x<=end_x;++x) {
 			if(x<0||y<0||x>=MapWidth||y>=MapHeight) {
 				out_buffer[index]=0; ++index;
 			} else {
-				out_buffer[index]=tiles[y][x].count; ++index;
-				for(z=0;z<tiles[y][x].count;++z) {
-					out_buffer[index]=tiles[y][x].items[z]; ++index;
+				out_buffer[index]=map[y][x].count; ++index;
+				for(z=0;z<map[y][x].count;++z) {
+					out_buffer[index]=map[y][x].items[z]; ++index;
 				}
 			}
 	}
 	
-	#ifdef _DEBUG_
-		printf("Prepared view of %ud bytes\n",index);
+	for(z=0;z<MAX_THREADS;++z) {
+		if(playerPtrs[z]!=NULL && playerPtrs[z]!=0 && playerPtrs[z]!=player) {
+			if(playerPtrs[z]->playerThread->alive==THREAD_ALIVE) {
+				start_x = playerPtrs[z]->x-center_x;
+				start_y = playerPtrs[z]->y-center_y;
+				if(start_x<-10 || start_x>10 || start_y<-10 || start_y>10) continue; //Nie sa obok
+				out_buffer[index]=DATA_HEADER_PLAYER; ++index;
+				out_buffer[index]=(signed char)start_x; ++index;
+				out_buffer[index]=(signed char)start_y; ++index;
+				out_buffer[index]=playerPtrs[z]->direction; ++index;
+				out_buffer[index]=playerPtrs[z]->xMilis; ++index;
+				out_buffer[index]=playerPtrs[z]->yMilis; ++index;
+			}
+		}
+	}
+	
+	for(z=0;z<MAX_BULLETS;++z) {
+		if(bullets[z].type!=BULLET_EMPTY) {
+			out_buffer[index]=DATA_HEADER_BULLET; ++index;
+			float bullet_x = bullets[z].x-(float)center_x;
+			float bullet_y = bullets[z].y-(float)center_y;
+			if(bullet_x<-10.0f || bullet_x>10.0f || bullet_y<-10.0f || bullet_y>10.0f) continue;
+			char* angle_bytes = (char*)&bullets[z].angle;
+			char* x_bytes = (char*)&bullet_x;
+			char* y_bytes = (char*)&bullet_y;
+			for(x=0;x<sizeof(float);++x) {
+				out_buffer[index]=angle_bytes[x]; ++index;
+			}
+			for(x=0;x<sizeof(float);++x) {
+				out_buffer[index]=x_bytes[x]; ++index;
+			}
+			for(x=0;x<sizeof(float);++x) {
+				out_buffer[index]=y_bytes[x]; ++index;
+			}
+		}
+	}
+		
+	
+	out_buffer[index]=SECTION_END; ++index;
+	
+	#ifdef _HARDDEBUG_
+		printf(CLR_G"Prepared view of %u bytes\n"CLR_N,index);
+		DumpMap(start_x,start_y,7,7);
 	#endif
 	
 	return index;
@@ -48,33 +93,83 @@ Player* CreatePlayer(Thread* attachThread, int index) {
 	SetPlayerName(newPlayer,"Sammy");
 	newPlayer->playerThread = attachThread;
 	newPlayer->index = index;
+	newPlayer->x = PLAYER_START_X;
+	newPlayer->y = PLAYER_START_Y;
+	newPlayer->xMilis = 0;
+	newPlayer->yMilis = 0;
+	newPlayer->direction = DIRECTION_DOWN;
 	return newPlayer;
+}
+
+void MovePlayer(Player* player, char direction) {
+	switch(direction) {
+		case 'w': {
+			if(IsBlockingXY(player->x, player->y-1)) return;
+			--player->y;
+			player->yMilis=MILIS_DELTA;
+			player->direction=DIRECTION_UP;
+			} break;
+		case 's': {
+			if(IsBlockingXY(player->x, player->y+1)) return;
+			++player->y;
+			player->yMilis=-MILIS_DELTA;
+			player->direction=DIRECTION_DOWN;
+			} break;
+		case 'a': {
+			if(IsBlockingXY(player->x-1, player->y)) return;
+			--player->x;
+			player->xMilis=MILIS_DELTA;
+			player->direction=DIRECTION_LEFT;
+			} break;
+		case 'd': {
+			if(IsBlockingXY(player->x+1, player->y)) return;
+			++player->x;
+			player->xMilis=-MILIS_DELTA;
+			player->direction=DIRECTION_RIGHT;
+			} break;
+	}
 }
 
 void UpdatePlayer(Player* player, char* commands){
 	if(commands!=0) {
 		//Jezeli wiadomosc to komenda
-		if(commands[0]==0x11) {
-			if(commands[1]==0x2) { //Tylko ustawianie imienia
+		if(commands[0]==COMMAND) {
+			if(commands[1]==COMMAND_NAME) { //Tylko ustawianie imienia
 				#ifdef _DEBUG_
-					printf("Changing name to: %s\n",commands+2);
+					printf(CLR_B"(%s)"CLR_N" Changing name to: %s\n",player->name,commands+2);
 				#endif
 				SetPlayerName(player,commands+2);
-			} else if(commands[1]==0x3) { //Ruszanie
-				switch(commands[2]) {
-					case 'w': --player->y; break;
-					case 's': ++player->y; break;
-					case 'a': --player->x; break;
-					case 'd': ++player->x; break;
-				}
+			} else if(commands[1]==COMMAND_MOVE) { //Ruszanie
+				if(player->xMilis==0 && player->yMilis==0)
+					MovePlayer(player, commands[2]);
+			} else if(commands[1]==COMMAND_LOGOUT) {
+				player->playerThread->alive=THREAD_DEAD;
+				#ifdef _DEBUG_
+					printf(CLR_Y"(%s)"CLR_N" Logged out, thread becoming dead\n",player->name);
+				#endif
+			} else if(commands[1]==0x8) {
+				float angle;
+				char* Pangle = (char*)&angle;
+				int i=0;
+				for(i=0;i<sizeof(float);++i) Pangle[i]=commands[2+i];
+				#ifdef _DEBUG_
+					printf(CLR_C"(%s)"CLR_N" Received bullet shot %.2f deg\n",player->name,angle);
+				#endif
+				CreateBullet((float)player->x, (float)player->y, angle);
 			}
 		}
+		
+		if(player->xMilis>0) player->xMilis-=MILIS_INC;
+		else if(player->xMilis<0) player->xMilis+=MILIS_INC;
+		if(player->yMilis>0) player->yMilis-=MILIS_INC;
+		else if(player->yMilis<0) player->yMilis+=MILIS_INC;
 		//Wyzeruj: nie powtarzaj komendy
 		commands[0]=0x0;
 	}
 }
 
 void DestroyPlayer(Player* player) {
+	playerPtrs[player->index]=0;
 	free(player);
 }
 
@@ -102,30 +197,45 @@ void* PlayerThreadFunction(void* arg) {
 	this->alive = THREAD_ALIVE;
 	
 	int r;
+	unsigned int no_read;
 	unsigned int w;
+	unsigned long sleep_u;
 	
 	//Zablokuj watek przed anulowaniem, poniewaz mamy otwarty socket
 	pthread_mutex_lock(this->safety_mutex);
 	
 	while(this->alive == THREAD_ALIVE) {
 		//Odczytaj co wysyla klient
-		r = read(socketf,buffer,1023);
+		r = recv(socketf,buffer,1023,0);
 		
-		if(r < 0) printf("(%s) Error reading from socket.\n",player->name);
+		if(r < 0) printerr(player->name,"Error reading from socket");
 		else if(r==0) {
+			Tick(&tv,&sleep_u);
 			UpdatePlayer(player,0);
-			usleep(1000*25);
+			sleep_u = Tock(&tv,&sleep_u);
+			#ifdef _HARDDEBUG_
+				warn(player->name,"No read");
+			#endif
+			no_read++;
+			usleep(1000*25-sleep_u);
+			if(no_read>=MAX_NOREAD) this->alive=THREAD_DEAD;
 		} else {
+			no_read=0;
+			Tick(&tv,&sleep_u);
 			this->last_active = time(NULL);
 			UpdatePlayer(player,buffer);
-			w=PreparePlayerMap(buffer,player->x,player->y,map);
+			w=PreparePlayerMap(buffer,player->x,player->y,map,player);
 			write(socketf, buffer, w);
-			usleep(1000*25);
+			sleep_u = Tock(&tv,&sleep_u);
+			#ifdef _HARDDEBUG_
+				printf(CLR_C"(%s)"CLR_N" Sleeping for %lu usec\n",player->name,1000*25-sleep_u);
+			#endif
+			usleep(1000*25-sleep_u);
 		}
 	}
 	
 	#ifdef _DEBUG_
-		printf("(%s) Closing socket\n",player->name);
+		warn(player->name,"Closing socket");
 	#endif
 	close(socketf);
 	pthread_mutex_unlock(this->safety_mutex);
@@ -136,7 +246,7 @@ void* PlayerThreadFunction(void* arg) {
 
 void StartPlayerThread(Thread* thread, int index, int socket, Player** playerptrs) {
 	#ifdef _DEBUG_
-		printf("Creating player [%d] and passing free thread and socket.\n",index);
+		printf(CLR_C"Creating player [%d] and passing free thread and socket.\n"CLR_N,index);
 	#endif
 	
 	//Tworzymy gracza w pamieci
@@ -153,13 +263,13 @@ void StartPlayerThread(Thread* thread, int index, int socket, Player** playerptr
 	//Dodajemy wskaznik gracza do pomocniczej tablicy
 	if(playerptrs[index] != 0) {
 		#ifdef _DEBUG_
-			printf("Freeing player %d\n",index);
+			printf(CLR_Y"Freeing player %d\n"CLR_N,index);
 		#endif
 		free(playerptrs[index]);
 	}
 		playerptrs[index]=player;
 	#ifdef _DEBUG_
-		printf("Starting player #%d thread.\n",index);
+		printf(CLR_C"Starting player #%d thread.\n"CLR_N,index);
 	#endif
 	
 	//Startujemy pthread z parametrem do funkcji, ktorym jest watek

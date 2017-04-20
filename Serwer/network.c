@@ -26,7 +26,7 @@ void* ListenerFunction(void* arg) {
 	free(this->attachment); //Usuwamy zalacznik z pamieci bo niepotrzebny
 	
 	#ifdef _DEBUG_
-		printf("Listener: Max number of threads = %lu\n",size);
+		printf(CLR_B"Listener:"CLR_N" Max number of threads = %lu\n",size);
 	#endif
 	
 	while(this->alive == THREAD_ALIVE) {
@@ -35,10 +35,10 @@ void* ListenerFunction(void* arg) {
 		int newsocket = accept(socket,(struct sockaddr*) &client_addr, &clilen); //Czekamy na nowe polaczenie
 		if(newsocket < 0) { //Nie udalo sie polaczyc nikomu
 			char* address = inet_ntoa(client_addr.sin_addr);
-			printf("Listener: error accepting connection [%s]\n",address);
+			printf(CLR_R"Listener:"CLR_N" error accepting connection [%s]\n",address);
 		} else { //Udalo sie polaczyc komus
 			char* address = inet_ntoa(client_addr.sin_addr);
-			printf("Successfully accepted connection from [%s]\n",address);
+			printf(CLR_G"Successfully accepted connection from [%s]"CLR_N"\n",address);
 			
 			//Szukamy wolnego miejsca dla gracza
 			Thread* freet = 0;
@@ -48,13 +48,13 @@ void* ListenerFunction(void* arg) {
 			
 			if(freet == 0) { //Znaczy ze nie ma miejsca xd
 				#ifdef _DEBUG_
-					printf("No more room for player!\n");
+					warn(address,"No more room for player");
 				#endif
 				write(newsocket,WELCOME_NOSPACE_MESSAGE,WELCOME_NOSPACE_LENGTH); //Wysylamy ze nie ma miejsca
 				close(newsocket); //Zamykamy bo nie ma miejsca
 			} else { //Jest miesjce!
 				#ifdef _DEBUG_
-					printf("Welcoming player and passing to new thread.\n");
+					success(address,"Welcoming player and passing to new thread.");
 				#endif
 				write(newsocket, WELCOME_MESSAGE, WELCOME_MESSAGE_LENGTH); //Witamy na serwerze, jest miesjce!
 				StartPlayerThread(freet, i, newsocket, playerptrs); //Rozpoczynamy nowy watek dla gracza
@@ -64,7 +64,7 @@ void* ListenerFunction(void* arg) {
 	}
 	
 	#ifdef _DEBUG_
-		printf("Listener: exiting\n");
+		printinfo("Listener","Exiting");
 	#endif
 	
 	pthread_exit(NULL);
