@@ -17,6 +17,11 @@ unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigne
 	out_buffer[index]=player->xMilis; ++index;
 	out_buffer[index]=player->yMilis; ++index;
 	out_buffer[index]=player->direction; ++index;
+	#ifdef _DONTSENDMAP_
+		out_buffer[index]=(unsigned char)player->x; ++index;
+		out_buffer[index]=(unsigned char) player->y; ++index;	
+	#endif
+	#ifndef _DONTSENDMAP_
 	for(y=start_y;y<=end_y;++y)
 		for(x=start_x;x<=end_x;++x) {
 			if(x<0||y<0||x>=MapWidth||y>=MapHeight) {
@@ -28,7 +33,7 @@ unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigne
 				}
 			}
 	}
-	
+	#endif
 	for(z=0;z<MAX_THREADS;++z) {
 		if(playerPtrs[z]!=NULL && playerPtrs[z]!=0 && playerPtrs[z]!=player) {
 			if(playerPtrs[z]->playerThread->alive==THREAD_ALIVE) {
@@ -36,6 +41,7 @@ unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigne
 				start_y = playerPtrs[z]->y-center_y;
 				if(start_x<-10 || start_x>10 || start_y<-10 || start_y>10) continue; //Nie sa obok
 				out_buffer[index]=DATA_HEADER_PLAYER; ++index;
+				out_buffer[index]=(unsigned char)z; ++index;
 				out_buffer[index]=(signed char)start_x; ++index;
 				out_buffer[index]=(signed char)start_y; ++index;
 				out_buffer[index]=playerPtrs[z]->direction; ++index;
@@ -46,11 +52,13 @@ unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigne
 	}
 	
 	for(z=0;z<MAX_BULLETS;++z) {
-		if(bullets[z].type!=BULLET_EMPTY) {
-			out_buffer[index]=DATA_HEADER_BULLET; ++index;
+		if(1) {
 			float bullet_x = bullets[z].x-(float)center_x;
 			float bullet_y = bullets[z].y-(float)center_y;
 			if(bullet_x<-10.0f || bullet_x>10.0f || bullet_y<-10.0f || bullet_y>10.0f) continue;
+			out_buffer[index]=DATA_HEADER_BULLET; ++index;
+			out_buffer[index]=(unsigned char)z; ++index;
+			out_buffer[index]=(unsigned char)bullets[z].type; ++index;
 			char* angle_bytes = (char*)&bullets[z].angle;
 			char* x_bytes = (char*)&bullet_x;
 			char* y_bytes = (char*)&bullet_y;
@@ -206,7 +214,7 @@ void* PlayerThreadFunction(void* arg) {
 	
 	while(this->alive == THREAD_ALIVE) {
 		//Odczytaj co wysyla klient
-		r = recv(socketf,buffer,1023,0);
+		r = read(socketf,buffer,1023);
 		
 		if(r < 0) printerr(player->name,"Error reading from socket");
 		else if(r==0) {

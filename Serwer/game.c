@@ -150,6 +150,7 @@ void CreateBullet(float x, float y, float angle) {
 	bullets[bullet_id].r=0;
 	bullets[bullet_id].type=BULLET_FIRE;
 	bullet_id++;
+	bullet_id=bullet_id%MAX_BULLETS;
 	pthread_mutex_unlock(&bullet_lock);
 }
 
