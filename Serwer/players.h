@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #define PLAYER_NAME_LENGTH 30
+#define INVENTORY_SIZE 10
 #define PLAYER_START_X 12
 #define PLAYER_START_Y 12
 #define PLAYER_VIEW_RADIUS 3
@@ -20,6 +21,7 @@
 #define DIRECTION_UP 2
 #define DIRECTION_LEFT 4
 #define DIRECTION_RIGHT 3
+#define PLAYER_LIFE_MAX 100
 
 #define MAX_NOREAD 250
 
@@ -32,6 +34,8 @@ typedef struct {
 	char direction;
 	signed char xMilis;
 	signed char yMilis;
+	char inventory[INVENTORY_SIZE];
+	char life;
 } Player;
 
 Player* playerPtrs[MAX_THREADS]; //Wskazniki dla graczy (pomocniczo, moze sie przydac aby nie bylo wyciekow)
@@ -45,5 +49,7 @@ typedef struct {
 void DestroyPlayer(Player* player);
 void StartPlayerThread(Thread* thread, int index, int socket, Player** playerptrs);
 void InitPlayerPtrArray(Player** playerptrs, size_t size);
+void Take(Player* player);
+void HurtPlayer(Player* player, int amount);
 
 #endif

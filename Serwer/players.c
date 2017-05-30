@@ -47,6 +47,7 @@ unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigne
 				out_buffer[index]=playerPtrs[z]->direction; ++index;
 				out_buffer[index]=playerPtrs[z]->xMilis; ++index;
 				out_buffer[index]=playerPtrs[z]->yMilis; ++index;
+				out_buffer[index]=playerPtrs[z]->life; ++index;
 			}
 		}
 	}
@@ -106,6 +107,7 @@ Player* CreatePlayer(Thread* attachThread, int index) {
 	newPlayer->xMilis = 0;
 	newPlayer->yMilis = 0;
 	newPlayer->direction = DIRECTION_DOWN;
+	newPlayer->life = PLAYER_LIFE_MAX;
 	return newPlayer;
 }
 
@@ -121,8 +123,27 @@ char IsPlayerBlocking(short x, short y, Player* player) {
 	return 0;
 }
 
+void Take(Player* player) {
+	LockChunk(player->x,player->y);
+	char tile = TopTile(GetTile(player->x, player->y));
+		if(tile == ITEMID_BAG) {
+			PopTile(GetTile(player->x, player->y));
+		} else if(tile == ITEMID_CRATE) {
+			PopTile(GetTile(player->x, player->y));
+		}
+	UnlockChunk(player->x,player->y);
+}
+
+void HurtPlayer(Player* player, int amount) {
+	player->life-=amount;
+	if(player->life<=0) {
+		player->life=0;
+	}
+}
+
 void MovePlayer(Player* player, char direction) {
 	short yDest, xDest;
+	if(player->life<=0) return;
 	switch(direction) {
 		case 'w': {
 			yDest = player->y-1;
@@ -200,7 +221,7 @@ void UpdatePlayer(Player* player, char* commands){
 				#ifdef _DEBUG_
 					printf(CLR_C"(%s)"CLR_N" Received bullet shot %.2f deg\n",player->name,angle);
 				#endif
-				CreateBullet((float)player->x, (float)player->y, angle);
+				if(player->life>0) CreateBullet((float)player->x, (float)player->y, angle, player);
 			}
 		}
 		

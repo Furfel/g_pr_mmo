@@ -80,6 +80,10 @@ short PushTile(Tile* tile, char item) {
 	return NO_TILE_SPACE;
 }
 
+Tile* getTile(unsigned int x, unsigned int y) {
+	return &map[y][x];
+}
+
 unsigned char PopTile(Tile* tile) {
 	if(tile->count<=0)
 		return NOITEM;
@@ -114,7 +118,7 @@ signed char IsBlockingXY(unsigned short x, unsigned short y) {
 }
 
 void UpdateBullets() {
-	int i; i=0;
+	int i,z; i=0;
 	pthread_mutex_lock(&bullet_lock);
 	Bullet* b;
 	for(;i<MAX_BULLETS;++i) {
@@ -128,6 +132,14 @@ void UpdateBullets() {
 			b->x=b->start_x+b->r*cos(b->angle);
 			b->y=b->start_y+b->r*sin(b->angle);
 			//if(IsBlockingXY((int)roundf(b->x),(int)roundf(b->y))) b->type=0;
+			for(z=0;z<MAX_THREADS;++z) {
+				if(playerPtrs[z]!=NULL && playerPtrs[z]!=0 && playerPtrs[z]!=b->owner) {
+					if((int)roundf(b->x)==playerPtrs[z]->x && (int)roundf(b->y)==playerPtrs[z]->y) {
+						b->type=0;
+						playerPtrs[z]->life-=20;
+					}
+				}
+			}
 		}
 	}
 	pthread_mutex_unlock(&bullet_lock);
@@ -140,7 +152,7 @@ void InitBullets() {
 	}	
 }
 
-void CreateBullet(float x, float y, float angle) {
+void CreateBullet(float x, float y, float angle, Player* owner) {
 	pthread_mutex_lock(&bullet_lock);
 	bullets[bullet_id].angle=angle;
 	bullets[bullet_id].x=x;
@@ -149,6 +161,7 @@ void CreateBullet(float x, float y, float angle) {
 	bullets[bullet_id].start_y=y;
 	bullets[bullet_id].r=0;
 	bullets[bullet_id].type=BULLET_FIRE;
+	bullets[bullet_id].owner = owner;
 	bullet_id++;
 	bullet_id=bullet_id%MAX_BULLETS;
 	pthread_mutex_unlock(&bullet_lock);

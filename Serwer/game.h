@@ -8,6 +8,8 @@
 #define MUTEX_CHUNK_H 16
 #define MAX_TILE_DEPTH 24
 #define NOITEM 0xFF
+#define ITEMID_BAG 0xFE
+#define ITEMID_CRATE 0xFD
 #define NO_TILE_SPACE -1
 #define ITEM_PUSHED 1
 #define MAX_BULLETS 64
@@ -30,6 +32,7 @@ typedef struct {
 	float x;
 	float y;
 	float r;
+	Player* owner;
 } Bullet;
 
 typedef struct {
