@@ -39,7 +39,7 @@ unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigne
 			if(playerPtrs[z]->playerThread->alive==THREAD_ALIVE) {
 				start_x = playerPtrs[z]->x-center_x;
 				start_y = playerPtrs[z]->y-center_y;
-				if(start_x<-10 || start_x>10 || start_y<-10 || start_y>10) continue; //Nie sa obok
+				//if(start_x<-10 || start_x>10 || start_y<-10 || start_y>10) continue; //Nie sa obok
 				out_buffer[index]=DATA_HEADER_PLAYER; ++index;
 				out_buffer[index]=(unsigned char)z; ++index;
 				out_buffer[index]=(signed char)start_x; ++index;
@@ -55,7 +55,7 @@ unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigne
 		if(1) {
 			float bullet_x = bullets[z].x-(float)center_x;
 			float bullet_y = bullets[z].y-(float)center_y;
-			if(bullet_x<-10.0f || bullet_x>10.0f || bullet_y<-10.0f || bullet_y>10.0f) continue;
+			//if(bullet_x<-10.0f || bullet_x>10.0f || bullet_y<-10.0f || bullet_y>10.0f) continue;
 			out_buffer[index]=DATA_HEADER_BULLET; ++index;
 			out_buffer[index]=(unsigned char)z; ++index;
 			out_buffer[index]=(unsigned char)bullets[z].type; ++index;
@@ -109,30 +109,67 @@ Player* CreatePlayer(Thread* attachThread, int index) {
 	return newPlayer;
 }
 
+char IsPlayerBlocking(short x, short y, Player* player) {
+	unsigned char z;
+	for(z=0;z<MAX_THREADS;++z) {
+		if(playerPtrs[z]!=NULL && playerPtrs[z]!=0 && playerPtrs[z]!=player) {
+			if(playerPtrs[z]->playerThread->alive==THREAD_ALIVE) {
+				if(playerPtrs[z]->x==x && playerPtrs[z]->y==y) return 1;
+			}
+		}
+	}
+	return 0;
+}
+
 void MovePlayer(Player* player, char direction) {
+	short yDest, xDest;
 	switch(direction) {
 		case 'w': {
-			if(IsBlockingXY(player->x, player->y-1)) return;
-			--player->y;
-			player->yMilis=MILIS_DELTA;
+			yDest = player->y-1;
+			xDest = player->x;
+			if(IsBlockingXY(xDest, yDest)) return;
+			LockChunk(xDest, yDest);
+				if(!IsPlayerBlocking(xDest,yDest,player)) {
+					--player->y;
+					player->yMilis=MILIS_DELTA;
+				}
+			UnlockChunk(xDest,yDest);
 			player->direction=DIRECTION_UP;
 			} break;
 		case 's': {
+			yDest = player->y+1;
+			xDest = player->x;
 			if(IsBlockingXY(player->x, player->y+1)) return;
-			++player->y;
-			player->yMilis=-MILIS_DELTA;
+			LockChunk(xDest, yDest);
+				if(!IsPlayerBlocking(xDest,yDest,player)) {
+					++player->y;
+					player->yMilis=-MILIS_DELTA;
+				}
+			UnlockChunk(xDest, yDest);
 			player->direction=DIRECTION_DOWN;
 			} break;
 		case 'a': {
+			yDest = player->y;
+			xDest = player->x-1;
 			if(IsBlockingXY(player->x-1, player->y)) return;
-			--player->x;
-			player->xMilis=MILIS_DELTA;
+			LockChunk(xDest, yDest);
+				if(!IsPlayerBlocking(xDest,yDest,player)) {
+					--player->x;
+					player->xMilis=MILIS_DELTA;
+				}
+			UnlockChunk(xDest, yDest);
 			player->direction=DIRECTION_LEFT;
 			} break;
 		case 'd': {
-			if(IsBlockingXY(player->x+1, player->y)) return;
-			++player->x;
-			player->xMilis=-MILIS_DELTA;
+			yDest = player->y;
+			xDest = player->x+1;
+			if(IsBlockingXY(xDest, yDest)) return;
+			LockChunk(xDest, yDest);
+				if(!IsPlayerBlocking(xDest,yDest,player)) {
+					++player->x;
+					player->xMilis=-MILIS_DELTA;
+				}
+			UnlockChunk(xDest, yDest);
 			player->direction=DIRECTION_RIGHT;
 			} break;
 	}

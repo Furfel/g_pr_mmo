@@ -58,5 +58,8 @@ void CreateBullet(float, float, float);
 void StartGame(Thread*);
 void DumpMap(int,int,int,int);
 
+void LockChunk(unsigned int x, unsigned int y);
+void UnlockChunk(unsigned int x, unsigned int y);
+
 
 #endif
