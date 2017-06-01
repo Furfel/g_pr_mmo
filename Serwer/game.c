@@ -6,9 +6,22 @@
 #include "game.h"
 #include "utils.h"
 
+#ifdef _USELIGHTMAP_
+#include "lightmap.h"
+#endif
+
 Tile** CreateMap(unsigned int map_width, unsigned int map_height) {
-	Tile** tiles = (Tile**)malloc(map_height*sizeof(Tile*));
 	unsigned int y,x;
+	#ifdef _USELIGHTMAP_
+		LightMap = (unsigned char**)malloc(map_height*sizeof(char*));
+		for(y=0;y<map_height;++y){
+			LightMap[y]=(char*)malloc(map_width*sizeof(char));
+			for(x=0;x<map_width;++x)
+				LightMap[y][x] = NOITEM;
+		}
+		BuildLightMap(LightMap);
+	#endif
+	Tile** tiles = (Tile**)malloc(map_height*sizeof(Tile*));
 	for(y=0;y<map_height;++y){
 		tiles[y] = (Tile*)malloc(map_width*sizeof(Tile));
 		for(x=0;x<map_width;++x)
@@ -38,6 +51,11 @@ void DestroyMap(Tile** tiles, pthread_mutex_t** chunklocks) {
 }
 
 void ReadMap(Tile*** dst, const char* name){
+	#ifdef _USELIGHTMAP_
+	CreateMap(42,24);
+	return;
+	#endif
+	
     short width,height;
     FILE* mapfile = fopen(name,"r");
     fread(&width,2,1,mapfile);
@@ -80,7 +98,7 @@ short PushTile(Tile* tile, char item) {
 	return NO_TILE_SPACE;
 }
 
-Tile* getTile(unsigned int x, unsigned int y) {
+Tile* GetTile(unsigned int x, unsigned int y) {
 	return &map[y][x];
 }
 
@@ -113,8 +131,27 @@ signed char IsBlocking(Tile* tile) {
 }
 
 signed char IsBlockingXY(unsigned short x, unsigned short y) {
+	#ifdef _USELIGHTMAP_
+		if(LightMap[y][x]==ITEMID_BLOCK) return 1;
+		return 0;
+	#endif
 	if(x<0 || y<0 || x>=MapWidth || y>=MapHeight) return 1;
 	return IsBlocking(&map[y][x]);
+}
+
+void CreateBag() {
+	#ifdef _USELIGHTMAP_
+		unsigned int x,y;
+		x=rand()%MapWidth;
+		y=rand()%MapHeight;
+		if(y<0) y=-y; if(x<0) x=-x;
+		if(IsBlockingXY(x,y)) {} else {
+			LightMap[y][x]=ITEMID_BAG;
+			#ifdef _DEBUG_
+				printf(CLR_C"[Game]"CLR_N" Created bag at %u,%u\n",x,y);
+			#endif
+		}
+	#endif
 }
 
 void UpdateBullets() {
@@ -129,12 +166,34 @@ void UpdateBullets() {
 				case BULLET_FIRE: b->r+=BULLET_FIRE_SPEED; if(b->r>BULLET_FIRE_DISTANCE) b->type=0; break;
 				case BULLET_KNIFE: b->r+=BULLET_KNIFE_SPEED; if(b->r>BULLET_KNIFE_DISTANCE) b->type=0; break;
 			}
+			#ifdef _HARDDEBUG_
+				if(b->type==0) printf("Destroyed bulled because of distance\n");
+			#endif
 			b->x=b->start_x+b->r*cos(b->angle);
 			b->y=b->start_y+b->r*sin(b->angle);
-			//if(IsBlockingXY((int)roundf(b->x),(int)roundf(b->y))) b->type=0;
+			if(IsBlockingXY((int)roundf(b->x),(int)roundf(b->y))) b->type=0;
+			#ifdef _HARDDEBUG_
+				if(b->type==0) printf("Destroyed bulled because of block\n");
+			#endif
 			for(z=0;z<MAX_THREADS;++z) {
 				if(playerPtrs[z]!=NULL && playerPtrs[z]!=0 && playerPtrs[z]!=b->owner) {
 					if((int)roundf(b->x)==playerPtrs[z]->x && (int)roundf(b->y)==playerPtrs[z]->y) {
+						if(playerPtrs[z]->look==BULLET_EARTH) {
+							if(b->type==BULLET_FIRE)
+								HurtPlayer(playerPtrs[z],10);
+							else if(b->type==BULLET_KNIFE)
+								HurtPlayer(playerPtrs[z],20);								
+						} else if(playerPtrs[z]->look==BULLET_FIRE) {
+							if(b->type==BULLET_EARTH)
+								HurtPlayer(playerPtrs[z],20);
+							else if(b->type==BULLET_KNIFE)
+								HurtPlayer(playerPtrs[z],10);
+						} else if(playerPtrs[z]->look==BULLET_KNIFE) {
+							if(b->type==BULLET_EARTH)
+								HurtPlayer(playerPtrs[z],10);
+							else if(b->type==BULLET_FIRE)
+								HurtPlayer(playerPtrs[z],20);
+						}
 						b->type=0;
 						playerPtrs[z]->life-=20;
 					}
@@ -149,7 +208,7 @@ void InitBullets() {
 	int i;
 	for(i=0;i<MAX_BULLETS;++i) {
 		bullets[i].type=BULLET_EMPTY;
-	}	
+	}
 }
 
 void CreateBullet(float x, float y, float angle, Player* owner) {
@@ -160,8 +219,9 @@ void CreateBullet(float x, float y, float angle, Player* owner) {
 	bullets[bullet_id].start_x=x;
 	bullets[bullet_id].start_y=y;
 	bullets[bullet_id].r=0;
-	bullets[bullet_id].type=BULLET_FIRE;
+	bullets[bullet_id].type=owner->look;
 	bullets[bullet_id].owner = owner;
+	owner->cooldown=120;
 	bullet_id++;
 	bullet_id=bullet_id%MAX_BULLETS;
 	pthread_mutex_unlock(&bullet_lock);
@@ -181,6 +241,8 @@ void* GameFunction(void* arg) {
 		Tick(&tv,&sleep_u);
 		
 			UpdateBullets();
+			game_ticks++;
+			if(game_ticks%TICKS_FOR_BAG==0) CreateBag();
 		
 		sleep_u=Tock(&tv,&sleep_u);
 		usleep(25000-sleep_u);
@@ -193,6 +255,7 @@ void* GameFunction(void* arg) {
 }
 
 void StartGame(Thread* t) {
+	game_ticks=0;
 	t->alive = THREAD_ALIVE;
 	pthread_t* tmp = (pthread_t*)malloc(sizeof(pthread_t));
 	pthread_create(tmp, NULL, GameFunction, t);

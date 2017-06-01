@@ -2,7 +2,7 @@ CFLAGS=
 LIB=-lpthread -lm
 BIN_SUFFIX=
 
-dontsendmap : CFLAGS=-std=gnu99 -D_DEBUG_ -D_DONTSENDMAP_ -g
+dontsendmap : CFLAGS=-std=gnu99 -D_DEBUG_ -D_DONTSENDMAP_ -D_USELIGHTMAP_ -g
 dontsendmap : BIN_SUFFIX=-debug
 dontsendmap : gameserver
 

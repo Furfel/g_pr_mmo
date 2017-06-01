@@ -32,10 +32,12 @@ typedef struct {
 	short y; //Pozycja y
 	int index; //Informacyjnie index w tablicy playerPtrs i main.c: players
 	char direction;
+	char look;
 	signed char xMilis;
 	signed char yMilis;
 	char inventory[INVENTORY_SIZE];
 	char life;
+	unsigned short cooldown;
 } Player;
 
 Player* playerPtrs[MAX_THREADS]; //Wskazniki dla graczy (pomocniczo, moze sie przydac aby nie bylo wyciekow)

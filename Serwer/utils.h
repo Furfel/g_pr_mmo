@@ -20,6 +20,7 @@
 
 #define DATA_HEADER_BULLET 0x40
 #define DATA_HEADER_PLAYER 0x50
+#define DATA_HEADER_MAP 0x60
 #define SECTION_END 0x17
 
 #define CLR_R "\x1b[1;31m"

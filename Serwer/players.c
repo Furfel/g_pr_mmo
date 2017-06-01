@@ -7,7 +7,7 @@
 #include <sys/time.h>
 
 unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigned short center_y, Tile** tiles, Player* player) {
-	if(tiles == 0 || out_buffer == 0) return 0;
+	//if(tiles == 0 || out_buffer == 0) return 0;
 	short start_x = center_x-PLAYER_VIEW_RADIUS;
 	short start_y = center_y-PLAYER_VIEW_RADIUS;
 	short end_x = center_x+PLAYER_VIEW_RADIUS;
@@ -17,6 +17,8 @@ unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigne
 	out_buffer[index]=player->xMilis; ++index;
 	out_buffer[index]=player->yMilis; ++index;
 	out_buffer[index]=player->direction; ++index;
+	//out_buffer[index]=player->look; ++index;
+	out_buffer[index]=player->life; ++index;
 	#ifdef _DONTSENDMAP_
 		out_buffer[index]=(unsigned char)player->x; ++index;
 		out_buffer[index]=(unsigned char) player->y; ++index;	
@@ -37,8 +39,13 @@ unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigne
 	for(z=0;z<MAX_THREADS;++z) {
 		if(playerPtrs[z]!=NULL && playerPtrs[z]!=0 && playerPtrs[z]!=player) {
 			if(playerPtrs[z]->playerThread->alive==THREAD_ALIVE) {
-				start_x = playerPtrs[z]->x-center_x;
-				start_y = playerPtrs[z]->y-center_y;
+				#ifdef _PLAYERCENTERED_
+					start_x = playerPtrs[z]->x-center_x;
+					start_y = playerPtrs[z]->y-center_y;
+				#else
+					start_x = playerPtrs[z]->x;
+					start_y = playerPtrs[z]->y;
+				#endif
 				//if(start_x<-10 || start_x>10 || start_y<-10 || start_y>10) continue; //Nie sa obok
 				out_buffer[index]=DATA_HEADER_PLAYER; ++index;
 				out_buffer[index]=(unsigned char)z; ++index;
@@ -47,6 +54,7 @@ unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigne
 				out_buffer[index]=playerPtrs[z]->direction; ++index;
 				out_buffer[index]=playerPtrs[z]->xMilis; ++index;
 				out_buffer[index]=playerPtrs[z]->yMilis; ++index;
+				out_buffer[index]=playerPtrs[z]->look; ++index;
 				out_buffer[index]=playerPtrs[z]->life; ++index;
 			}
 		}
@@ -54,8 +62,13 @@ unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigne
 	
 	for(z=0;z<MAX_BULLETS;++z) {
 		if(1) {
-			float bullet_x = bullets[z].x-(float)center_x;
-			float bullet_y = bullets[z].y-(float)center_y;
+			#ifdef _PLAYERCENTERED_
+				float bullet_x = bullets[z].x-(float)center_x;
+				float bullet_y = bullets[z].y-(float)center_y;
+			#else
+				float bullet_x = bullets[z].x;
+				float bullet_y = bullets[z].y;
+			#endif
 			//if(bullet_x<-10.0f || bullet_x>10.0f || bullet_y<-10.0f || bullet_y>10.0f) continue;
 			out_buffer[index]=DATA_HEADER_BULLET; ++index;
 			out_buffer[index]=(unsigned char)z; ++index;
@@ -74,13 +87,17 @@ unsigned int PreparePlayerMap(char* out_buffer, unsigned short center_x, unsigne
 			}
 		}
 	}
-		
 	
+	out_buffer[index]=DATA_HEADER_MAP; ++index;
+	for(y=0;y<MapHeight;++y)
+		for(x=0;x<MapWidth;++x) {
+			out_buffer[index]=LightMap[y][x]; ++index;}
+		
 	out_buffer[index]=SECTION_END; ++index;
 	
 	#ifdef _HARDDEBUG_
 		printf(CLR_G"Prepared view of %u bytes\n"CLR_N,index);
-		DumpMap(start_x,start_y,7,7);
+		//DumpMap(start_x,start_y,7,7);
 	#endif
 	
 	return index;
@@ -107,6 +124,7 @@ Player* CreatePlayer(Thread* attachThread, int index) {
 	newPlayer->xMilis = 0;
 	newPlayer->yMilis = 0;
 	newPlayer->direction = DIRECTION_DOWN;
+	newPlayer->look = 0;
 	newPlayer->life = PLAYER_LIFE_MAX;
 	return newPlayer;
 }
@@ -125,12 +143,20 @@ char IsPlayerBlocking(short x, short y, Player* player) {
 
 void Take(Player* player) {
 	LockChunk(player->x,player->y);
+	#ifdef _USELIGHTMAP_
+	if(LightMap[player->y][player->x]==ITEMID_BAG) {
+		LightMap[player->y][player->x]=NOITEM;
+		player->life+=20;
+		if(player->life>PLAYER_LIFE_MAX) player->life=PLAYER_LIFE_MAX;
+	}
+	#else
 	char tile = TopTile(GetTile(player->x, player->y));
 		if(tile == ITEMID_BAG) {
 			PopTile(GetTile(player->x, player->y));
 		} else if(tile == ITEMID_CRATE) {
 			PopTile(GetTile(player->x, player->y));
 		}
+	#endif
 	UnlockChunk(player->x,player->y);
 }
 
@@ -193,10 +219,15 @@ void MovePlayer(Player* player, char direction) {
 			UnlockChunk(xDest, yDest);
 			player->direction=DIRECTION_RIGHT;
 			} break;
+		case ' ': {
+			Take(player);
+			}break;
+		
 	}
 }
 
 void UpdatePlayer(Player* player, char* commands){
+	if(player->cooldown>0) --player->cooldown;
 	if(commands!=0) {
 		//Jezeli wiadomosc to komenda
 		if(commands[0]==COMMAND) {
@@ -221,7 +252,17 @@ void UpdatePlayer(Player* player, char* commands){
 				#ifdef _DEBUG_
 					printf(CLR_C"(%s)"CLR_N" Received bullet shot %.2f deg\n",player->name,angle);
 				#endif
-				if(player->life>0) CreateBullet((float)player->x, (float)player->y, angle, player);
+				if(player->life>0 && player->cooldown<=0) CreateBullet((float)player->x, (float)player->y, angle, player);
+			} else if(commands[1]==0x9) {
+				player->look=commands[2];
+				#ifdef _DEBUG_
+					printf(CLR_B"(%s)"CLR_N" Setting look to: %d\n",player->name,player->look);
+				#endif
+			} else if(commands[1]==0xA) {
+				Take(player);Take(player);
+				#ifdef _DEBUG_
+					printf(CLR_B"(%s)"CLR_N" Taking item\n",player->name);
+				#endif
 			}
 		}
 		
@@ -249,7 +290,7 @@ void* PlayerThreadFunction(void* arg) {
 	int index = attachment->index;
 	free(attachment);
 	
-	char buffer[1024];
+	char buffer[2048];
 	
 	//Timeout socketu na 5 sekund
 	struct timeval tv;
@@ -272,7 +313,7 @@ void* PlayerThreadFunction(void* arg) {
 	
 	while(this->alive == THREAD_ALIVE) {
 		//Odczytaj co wysyla klient
-		r = read(socketf,buffer,1023);
+		r = read(socketf,buffer,2047);
 		
 		if(r < 0) printerr(player->name,"Error reading from socket");
 		else if(r==0) {
@@ -286,6 +327,9 @@ void* PlayerThreadFunction(void* arg) {
 			usleep(1000*25-sleep_u);
 			if(no_read>=MAX_NOREAD) this->alive=THREAD_DEAD;
 		} else {
+			#ifdef _HARDDEBUG_
+				printf(CLR_C"(%s:%d)"CLR_N" Read %d\n",player->name,player->look,r);
+			#endif
 			no_read=0;
 			Tick(&tv,&sleep_u);
 			this->last_active = time(NULL);
@@ -294,7 +338,7 @@ void* PlayerThreadFunction(void* arg) {
 			write(socketf, buffer, w);
 			sleep_u = Tock(&tv,&sleep_u);
 			#ifdef _HARDDEBUG_
-				printf(CLR_C"(%s)"CLR_N" Sleeping for %lu usec\n",player->name,1000*25-sleep_u);
+				printf(CLR_C"(%s:%d)"CLR_N" Sleeping for %lu usec\n",player->name,player->look,1000*25-sleep_u);
 			#endif
 			usleep(1000*25-sleep_u);
 		}
