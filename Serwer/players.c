@@ -119,8 +119,26 @@ Player* CreatePlayer(Thread* attachThread, int index) {
 	SetPlayerName(newPlayer,"Sammy");
 	newPlayer->playerThread = attachThread;
 	newPlayer->index = index;
+	#ifdef _USELIGHTMAP_
+		//char RespX[4] = {15, 26, 40, 37};
+		//char RespY[4] = {4, 4, 5, 11};
+		if(index%4==0) {
+			newPlayer->x = 15;
+			newPlayer->y = 4;
+		} else if(index%4==1) {
+			newPlayer->x = 26;
+			newPlayer->y = 4;
+		} else if(index%4==2) {
+			newPlayer->x = 40;
+			newPlayer->y = 5;
+		} else {
+			newPlayer->x = 37;
+			newPlayer->y = 11;
+			}
+	#else
 	newPlayer->x = PLAYER_START_X;
 	newPlayer->y = PLAYER_START_Y;
+	#endif
 	newPlayer->xMilis = 0;
 	newPlayer->yMilis = 0;
 	newPlayer->direction = DIRECTION_DOWN;
